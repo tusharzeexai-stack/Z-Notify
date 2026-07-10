@@ -1,0 +1,301 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* ═══════════════════════════════════════════════════
+   THEME SYSTEM — CSS Custom Properties
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  /* Dark Theme (Default) */
+  --th-bg: #0d141d;
+  --th-bg-deep: #080f17;
+  --th-bg-alt: #0F0A1E;
+  --th-surface: #192029;
+  --th-surface-input: #1C1540;
+  --th-text: #dce3f0;
+  --th-accent-glow: rgba(153, 0, 170, 0.02);
+  --th-accent-glow-strong: rgba(153, 0, 170, 0.06);
+  --th-accent-glow-secondary: rgba(220, 100, 255, 0.05);
+  --th-bar-hover: #dd88ff;
+  --th-sticky-bg: rgba(13, 20, 29, 0.85);
+  --th-glass-bg: rgba(25, 32, 41, 0.6);
+  --th-glass-border: rgba(153, 0, 170, 0.35);
+  --th-glass-shadow: rgba(153, 0, 170, 0.18);
+  --th-glass-panel-bg: rgba(25, 32, 41, 0.7);
+  --th-glass-panel-border: #4a3055;
+  --th-glass-accent-bg: rgba(255, 255, 255, 0.03);
+  --th-glass-accent-border: rgba(255, 255, 255, 0.1);
+  --th-card-hover-border: #9900AA;
+  --th-card-hover-bg: #1a1228;
+  --th-role-border: #3d1060;
+  --th-role-active-border: #9900AA;
+  --th-role-active-bg: rgba(153, 0, 170, 0.12);
+  --th-role-active-shadow: rgba(153, 0, 170, 0.35);
+  --th-scrollbar-track: #0d141d;
+  --th-scrollbar-thumb: #2e2040;
+  --th-scrollbar-thumb-hover: #4a2060;
+  --th-input-focus-border: #9900AA;
+  --th-input-focus-shadow: rgba(153, 0, 170, 0.25);
+  --th-unread-border: #9900AA;
+  --th-glow-gradient: rgba(153, 0, 170, 0.05);
+  --th-shard-bg: #1C1540;
+  --th-dot-color: #9900AA;
+  --th-text-white: #ffffff;
+}
+
+[data-theme="light"] {
+  /* Light Theme — Purple & White */
+  --th-bg: #fdf0ff;
+  --th-bg-deep: #f5e0ff;
+  --th-bg-alt: #f8eaff;
+  --th-surface: #ffffff;
+  --th-surface-input: #faeeff;
+  --th-text: #1c0a2e;
+  --th-accent-glow: rgba(153, 0, 170, 0.03);
+  --th-accent-glow-strong: rgba(153, 0, 170, 0.09);
+  --th-accent-glow-secondary: rgba(153, 0, 170, 0.06);
+  --th-bar-hover: #cc44dd;
+  --th-sticky-bg: rgba(253, 240, 255, 0.92);
+  --th-glass-bg: rgba(255, 255, 255, 0.88);
+  --th-glass-border: rgba(153, 0, 170, 0.22);
+  --th-glass-shadow: rgba(153, 0, 170, 0.09);
+  --th-glass-panel-bg: rgba(255, 255, 255, 0.92);
+  --th-glass-panel-border: #ddb8e8;
+  --th-glass-accent-bg: rgba(153, 0, 170, 0.04);
+  --th-glass-accent-border: rgba(153, 0, 170, 0.14);
+  --th-card-hover-border: #9900AA;
+  --th-card-hover-bg: #faeeff;
+  --th-role-border: #ddb8e8;
+  --th-role-active-border: #9900AA;
+  --th-role-active-bg: rgba(153, 0, 170, 0.08);
+  --th-role-active-shadow: rgba(153, 0, 170, 0.18);
+  --th-scrollbar-track: #fdf0ff;
+  --th-scrollbar-thumb: #ddb8e8;
+  --th-scrollbar-thumb-hover: #cc88d8;
+  --th-input-focus-border: #9900AA;
+  --th-input-focus-shadow: rgba(153, 0, 170, 0.18);
+  --th-unread-border: #9900AA;
+  --th-glow-gradient: rgba(153, 0, 170, 0.05);
+  --th-shard-bg: #f8eaff;
+  --th-dot-color: #9900AA;
+  --th-text-white: #1c0a2e;
+
+  /* Override Tailwind design token colors for light mode */
+  --color-surface-dim: #faeeff;
+  --color-outline: #884499;
+  --color-on-secondary-container: #6a0077;
+  --color-primary: #9900AA;
+  --color-on-background: #1c0a2e;
+  --color-primary-fixed-dim: #9900AA;
+  --color-secondary-fixed-dim: #7a2288;
+  --color-outline-variant: #ddb8e8;
+  --color-surface-container-lowest: #ffffff;
+  --color-tertiary-container: #8af8c6;
+  --color-surface-variant: #f0d8f8;
+  --color-primary-container: #9900AA;
+  --color-on-surface: #1c0a2e;
+  --color-error-container: #ffdad6;
+  --color-on-tertiary-container: #002115;
+  --color-secondary-fixed: #f2d8ff;
+  --color-on-primary-fixed-variant: #6a0077;
+  --color-primary-fixed: #faeeff;
+  --color-surface: #fff8ff;
+  --color-inverse-primary: #9900AA;
+  --color-tertiary-fixed: #6ffbbe;
+  --color-tertiary: #006c4c;
+  --color-inverse-surface: #313033;
+  --color-surface-container: #ffffff;
+  --color-on-surface-variant: #4a2255;
+  --color-on-tertiary-fixed: #002113;
+  --color-on-primary-container: #ffffff;
+  --color-on-secondary: #ffffff;
+  --color-surface-tint: #9900AA;
+  --color-on-error: #ffffff;
+  --color-on-secondary-fixed-variant: #6a0077;
+  --color-on-tertiary-fixed-variant: #005236;
+  --color-inverse-on-surface: #f8eeff;
+  --color-on-secondary-fixed: #2d0044;
+  --color-secondary-container: #f2d8ff;
+  --color-on-tertiary: #ffffff;
+  --color-surface-container-high: #f5e0ff;
+  --color-on-primary-fixed: #2d0044;
+  --color-background: #fdf0ff;
+  --color-surface-container-low: #faeeff;
+  --color-tertiary-fixed-dim: #4edea3;
+  --color-surface-bright: #ffffff;
+  --color-secondary: #7a2288;
+  --color-error: #ba1a1a;
+  --color-on-primary: #ffffff;
+  --color-surface-container-highest: #eeccf5;
+  --color-on-error-container: #410002;
+}
+
+/* ═══════════════════════════════════════════════════
+   LIGHT THEME — Tailwind color overrides via class
+   These ensure all Tailwind utility classes respond 
+   ═══════════════════════════════════════════════════ */
+
+@layer base {
+  body {
+    background-color: var(--th-bg);
+    color: var(--th-text);
+    overflow-x: hidden;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* Material Symbols Integration */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Glassmorphism Styles */
+.glass-card {
+  background: var(--th-glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--th-glass-border);
+  box-shadow: 0 0 40px var(--th-glass-shadow);
+}
+
+.glass-panel {
+  background: var(--th-glass-panel-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--th-glass-panel-border);
+}
+
+.glass-accent {
+  background: var(--th-glass-accent-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--th-glass-accent-border);
+}
+
+/* Custom Scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--th-scrollbar-track);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--th-scrollbar-thumb);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--th-scrollbar-thumb-hover);
+}
+
+/* Card Hover transitions */
+.card-hover:hover {
+  border-color: var(--th-card-hover-border);
+  background-color: var(--th-card-hover-bg);
+}
+
+/* Role Cards */
+.role-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--th-role-border);
+}
+
+.role-card.active {
+  border-color: var(--th-role-active-border);
+  background: var(--th-role-active-bg);
+  box-shadow: 0 0 15px var(--th-role-active-shadow);
+}
+
+/* Input Glows */
+.input-glow:focus {
+  border-color: var(--th-input-focus-border) !important;
+  box-shadow: 0 0 0 2px var(--th-input-focus-shadow);
+}
+
+/* Notification Indicators */
+.notification-unread::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: var(--th-unread-border);
+}
+
+/* Particle animation container */
+.glow-spot {
+  position: fixed;
+  pointer-events: none;
+  background: radial-gradient(circle, var(--th-glow-gradient) 0%, transparent 60%);
+  border-radius: 50%;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+/* ═══════════════════════════════════════════════════
+   THEME TOGGLE BUTTON — Smooth animation
+   ═══════════════════════════════════════════════════ */
+.theme-toggle {
+  position: relative;
+  width: 52px;
+  height: 28px;
+  border-radius: 14px;
+  border: 1px solid var(--th-glass-panel-border);
+  background: var(--th-bg-deep);
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  padding: 0 3px;
+}
+
+.theme-toggle:hover {
+  border-color: #7c3aed;
+  box-shadow: 0 0 12px rgba(124, 58, 237, 0.2);
+}
+
+.theme-toggle .toggle-knob {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #7c3aed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4);
+}
+
+.theme-toggle[data-active="true"] .toggle-knob {
+  transform: translateX(24px);
+}
+
+.theme-toggle .toggle-knob .material-symbols-outlined {
+  font-size: 14px;
+  color: white;
+}
+
+/* Light mode shadow adjustments */
+[data-theme="light"] .glass-card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 0 20px rgba(124, 58, 237, 0.06);
+}
+
+[data-theme="light"] select option {
+  background: #ffffff;
+  color: #1c1b2e;
+}
+
+/* Light theme — ensure text is readable on inputs */
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  color: #1c1b2e;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: #79747e;
+}
