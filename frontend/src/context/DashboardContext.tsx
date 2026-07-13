@@ -208,7 +208,7 @@ interface DashboardContextType {
 
 const DashboardContext = createContext<DashboardContextType | undefined>(undefined);
 
-const API_BASE = 'http://localhost:8001/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
 
 export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('hpns_token'));

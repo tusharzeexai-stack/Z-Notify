@@ -20,6 +20,10 @@ for env_path in [root_env, backend_env]:
                         continue
                     os.environ[k] = v
 
+# Setup dynamic fallback for local SQLite database file
+backend_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+default_db = os.path.join(backend_root, "znotify.db").replace("\\", "/")
+
 class Settings(BaseSettings):
     API_V1_STR: str = "/api"
     PROJECT_NAME: str = "Z-Notify HPNS"
@@ -30,7 +34,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days for ease of testing
     
     # DB & Redis
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///d:/Z-Notify/backend/znotify.db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{default_db}")
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
     
     # OpenAI
