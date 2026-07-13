@@ -2,11 +2,8 @@
   "version": 2,
   "builds": [
     {
-      "src": "backend/main.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb"
-      }
+      "src": "api/index.py",
+      "use": "@vercel/python"
     },
     {
       "src": "frontend/package.json",
@@ -19,16 +16,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "backend/main.py",
-      "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
-    },
-    {
-      "src": "/docs",
-      "dest": "backend/main.py"
-    },
-    {
-      "src": "/openapi.json",
-      "dest": "backend/main.py"
+      "dest": "/api/index.py"
     },
     {
       "handle": "filesystem"
