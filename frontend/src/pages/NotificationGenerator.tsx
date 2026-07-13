@@ -196,7 +196,8 @@ export const NotificationGenerator: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8001/api'}/users/upload-clicks`, {
+      const _apiBase = import.meta.env.VITE_API_URL || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:8001/api' : '/api');
+      const response = await fetch(`${_apiBase}/users/upload-clicks`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -23,7 +23,8 @@ export const UserManagement: React.FC = () => {
     fetchUsers();
   }, []);
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8001/api';
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const API_BASE = import.meta.env.VITE_API_URL || (isLocalhost ? 'http://localhost:8001/api' : '/api');
 
   const handleCancelEdit = () => {
     setEditingUser(null);
