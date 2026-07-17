@@ -1,0 +1,21 @@
+Total rows: 53
+domain, bucket_id, bucket_name, question_title
+Agriculture, A1, Farmer Identity & Scale, Do you do farming?
+Agriculture, A1, Farmer Identity & Scale, Do you own agricultural land?
+Agriculture, A1, Farmer Identity & Scale, If yes, how much land do you have?
+Agriculture, A2, Farmer Challenges, What major difficulties do you face in farming?
+Agriculture, A2, Farmer Challenges, What is your biggest problem at work?
+Agriculture, A3, Production System, How many crops do you grow in one year?
+Agriculture, A3, Production System, What types of crops do you grow?
+Agriculture, A3, Production System, From where do you get your seeds?
+Agriculture, A3, Production System, What farming method do you use?
+Agriculture, A4, Water & Infrastructure, What is your water source for farming?
+Agriculture, A4, Water & Infrastructure, What tools/machinery do you use?
+Agriculture, A4, Water & Infrastructure, What type of energy source do you use for farming?
+Agriculture, A4, Water & Infrastructure, Do you use safety gear while spraying medicines?
+Agriculture, A5, Market & Income Enhancement, Where do you sell your crop produce?
+Agriculture, A5, Market & Income Enhancement, If exporting, through which channel do you export?
+Agriculture, A5, Market & Income Enhancement, Do you do primary processing before selling your produce?
+Agriculture, A5, Market & Income Enhancement, Are you a member of any farmer group/company?
+Agriculture, A6, Scheme & Financial Enablement, Which government schemes have you availed?
+Agriculture, A6, Scheme & Financial Enablement, Do you receive subsidy on time?

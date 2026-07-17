@@ -1,0 +1,495 @@
+PERSONA TAXONOMY
+A 66-Persona Framework for Industrial-Scale Notification Personalisation
+Derived entirely from column-level schema (final_updated_main.csv) and the survey question / HPNS bucket structure — no individual user records were analysed to build this taxonomy.
+1. Why 66 Personas, and How They're Built
+This taxonomy is built by combining three independent axes, each grounded in a specific set of columns from the profile schema and the survey question structure, rather than in any observed user distribution. Multiplying the axes gives 60 combinatorial personas, plus 6 cross-cutting personas layered on top to handle edge cases the combinatorial grid doesn't cover cleanly (missing data, dormant signups, minority languages, and so on).
+Axis 1 — Behavioural Segment (5 values): sourced from primary_category. This field is the same funnel classification used in the initial 5-persona framework.
+Axis 2 — Life-Need Domain (3 values): sourced from the survey's HPNS structure (Health / Skills / Agriculture) — the three domains the questionnaire is organised into.
+Axis 3 — Life-Context Cluster (4 values): sourced from Occupation and Working_status, grouped into four broad clusters that determine tone and framing rather than content.
+5 × 3 × 4 = 60 combinatorial personas, + 6 cross-cutting personas = 66 total personas.
+A person's underlying life-need domain is not the same as their app behaviour — someone can behave like a "Scheme Seeker" while their confirmed need sits in Health, Skills, or Agriculture, since all three domains include scheme/benefit-type questions in the survey (H3, S4, A6). That's why every Behaviour × Domain pairing is meaningful rather than arbitrary.
+2. Axis Definitions
+Axis 1 — Behavioural Segment
+ID
+Name
+Schema source
+B1
+Passive Browser (Content Reader)
+primary_category = 'Content Reader'
+B2
+Power Converter (High Converter)
+primary_category = 'High Converter'
+B3
+Aspiring Job Seeker (Job Hunter)
+primary_category = 'Job Hunter'
+B4
+Benefit Seeker (Scheme Seeker)
+primary_category = 'Scheme Seeker'
+B5
+Local Service Explorer (Service Explorer)
+primary_category = 'Service Explorer'
+Axis 2 — Life-Need Domain
+ID
+Domain
+Survey / schema source
+D1
+Health
+HPNS domain in the questionnaire mapping (question_title, bucket_id, bucket_name, signal_name columns)
+D2
+Skills
+HPNS domain in the questionnaire mapping (question_title, bucket_id, bucket_name, signal_name columns)
+D3
+Agriculture
+HPNS domain in the questionnaire mapping (question_title, bucket_id, bucket_name, signal_name columns)
+Axis 3 — Life-Context Cluster
+ID
+Cluster
+Schema source
+LC1
+Farm & Land-Based
+Occupation ∈ {Farmer, Agricultural Worker}
+LC2
+Home & Family-Based
+Occupation = Homemaker, or family_type_id / Working_status indicates family-dependent status
+LC3
+Employed & Working
+Working_status ∈ {Working Full-Time, Working Part-Time, Self-Employed}, Occupation ∈ {salaried/skilled-trade/business}
+LC4
+Youth & Job-Seeking
+Occupation = Student, or Working_status ∈ {Unemployed, Not Working}
+3. The 60-Persona Catalog
+Organised by Behavioural Segment. Within each, the 12 rows are the 3 domains × 4 life-contexts.
+B1 — Passive Browser (Content Reader)
+#
+Persona
+Life-Need Domain
+Life-Context
+Key HPNS Bucket
+Notification Angle
+1
+Farm & Land-Based Passive Browser — Health Need
+Health
+Farm & Land-Based
+H4 Preventive Wellness
+Awareness content on preventive habits and common health conditions, local, crop-season-aware framing; peer-farmer language.
+2
+Home & Family-Based Passive Browser — Health Need
+Health
+Home & Family-Based
+H4 Preventive Wellness
+Awareness content on preventive habits and common health conditions, family-benefit framing; flexible, home-compatible options.
+3
+Employed & Working Passive Browser — Health Need
+Health
+Employed & Working
+H4 Preventive Wellness
+Awareness content on preventive habits and common health conditions, time-efficiency and career-progression framing.
+4
+Youth & Job-Seeking Passive Browser — Health Need
+Health
+Youth & Job-Seeking
+H4 Preventive Wellness
+Awareness content on preventive habits and common health conditions, aspirational, first-step, growth-oriented framing.
+5
+Farm & Land-Based Passive Browser — Skills Need
+Skills
+Farm & Land-Based
+S2 Current Capability
+Skill-building tips and short awareness content, local, crop-season-aware framing; peer-farmer language.
+6
+Home & Family-Based Passive Browser — Skills Need
+Skills
+Home & Family-Based
+S2 Current Capability
+Skill-building tips and short awareness content, family-benefit framing; flexible, home-compatible options.
+7
+Employed & Working Passive Browser — Skills Need
+Skills
+Employed & Working
+S2 Current Capability
+Skill-building tips and short awareness content, time-efficiency and career-progression framing.
+8
+Youth & Job-Seeking Passive Browser — Skills Need
+Skills
+Youth & Job-Seeking
+S2 Current Capability
+Skill-building tips and short awareness content, aspirational, first-step, growth-oriented framing.
+9
+Farm & Land-Based Passive Browser — Agriculture Need
+Agriculture
+Farm & Land-Based
+A7 Knowledge & Advisory
+Crop advisory tips and seasonal awareness content, local, crop-season-aware framing; peer-farmer language.
+10
+Home & Family-Based Passive Browser — Agriculture Need
+Agriculture
+Home & Family-Based
+A7 Knowledge & Advisory
+Crop advisory tips and seasonal awareness content, family-benefit framing; flexible, home-compatible options.
+11
+Employed & Working Passive Browser — Agriculture Need
+Agriculture
+Employed & Working
+A7 Knowledge & Advisory
+Crop advisory tips and seasonal awareness content, time-efficiency and career-progression framing.
+12
+Youth & Job-Seeking Passive Browser — Agriculture Need
+Agriculture
+Youth & Job-Seeking
+A7 Knowledge & Advisory
+Crop advisory tips and seasonal awareness content, aspirational, first-step, growth-oriented framing.
+B2 — Power Converter (High Converter)
+#
+Persona
+Life-Need Domain
+Life-Context
+Key HPNS Bucket
+Notification Angle
+13
+Farm & Land-Based Power Converter — Health Need
+Health
+Farm & Land-Based
+H3 Health Scheme Adoption
+Nudge to finish enrolling in or claiming a health scheme benefit, local, crop-season-aware framing; peer-farmer language.
+14
+Home & Family-Based Power Converter — Health Need
+Health
+Home & Family-Based
+H3 Health Scheme Adoption
+Nudge to finish enrolling in or claiming a health scheme benefit, family-benefit framing; flexible, home-compatible options.
+15
+Employed & Working Power Converter — Health Need
+Health
+Employed & Working
+H3 Health Scheme Adoption
+Nudge to finish enrolling in or claiming a health scheme benefit, time-efficiency and career-progression framing.
+16
+Youth & Job-Seeking Power Converter — Health Need
+Health
+Youth & Job-Seeking
+H3 Health Scheme Adoption
+Nudge to finish enrolling in or claiming a health scheme benefit, aspirational, first-step, growth-oriented framing.
+17
+Farm & Land-Based Power Converter — Skills Need
+Skills
+Farm & Land-Based
+S4 Skill Ecosystem Participation
+Nudge to complete a training enrollment or certification already started, local, crop-season-aware framing; peer-farmer language.
+18
+Home & Family-Based Power Converter — Skills Need
+Skills
+Home & Family-Based
+S4 Skill Ecosystem Participation
+Nudge to complete a training enrollment or certification already started, family-benefit framing; flexible, home-compatible options.
+19
+Employed & Working Power Converter — Skills Need
+Skills
+Employed & Working
+S4 Skill Ecosystem Participation
+Nudge to complete a training enrollment or certification already started, time-efficiency and career-progression framing.
+20
+Youth & Job-Seeking Power Converter — Skills Need
+Skills
+Youth & Job-Seeking
+S4 Skill Ecosystem Participation
+Nudge to complete a training enrollment or certification already started, aspirational, first-step, growth-oriented framing.
+21
+Farm & Land-Based Power Converter — Agriculture Need
+Agriculture
+Farm & Land-Based
+A6 Scheme & Financial Enablement
+Nudge to finish a subsidy or scheme claim already in motion, local, crop-season-aware framing; peer-farmer language.
+22
+Home & Family-Based Power Converter — Agriculture Need
+Agriculture
+Home & Family-Based
+A6 Scheme & Financial Enablement
+Nudge to finish a subsidy or scheme claim already in motion, family-benefit framing; flexible, home-compatible options.
+23
+Employed & Working Power Converter — Agriculture Need
+Agriculture
+Employed & Working
+A6 Scheme & Financial Enablement
+Nudge to finish a subsidy or scheme claim already in motion, time-efficiency and career-progression framing.
+24
+Youth & Job-Seeking Power Converter — Agriculture Need
+Agriculture
+Youth & Job-Seeking
+A6 Scheme & Financial Enablement
+Nudge to finish a subsidy or scheme claim already in motion, aspirational, first-step, growth-oriented framing.
+B3 — Aspiring Job Seeker (Job Hunter)
+#
+Persona
+Life-Need Domain
+Life-Context
+Key HPNS Bucket
+Notification Angle
+25
+Farm & Land-Based Aspiring Job Seeker — Health Need
+Health
+Farm & Land-Based
+H1/H2 Medical Need & Access
+Employment leads framed around flexible/health-accommodating roles, local, crop-season-aware framing; peer-farmer language.
+26
+Home & Family-Based Aspiring Job Seeker — Health Need
+Health
+Home & Family-Based
+H1/H2 Medical Need & Access
+Employment leads framed around flexible/health-accommodating roles, family-benefit framing; flexible, home-compatible options.
+27
+Employed & Working Aspiring Job Seeker — Health Need
+Health
+Employed & Working
+H1/H2 Medical Need & Access
+Employment leads framed around flexible/health-accommodating roles, time-efficiency and career-progression framing.
+28
+Youth & Job-Seeking Aspiring Job Seeker — Health Need
+Health
+Youth & Job-Seeking
+H1/H2 Medical Need & Access
+Employment leads framed around flexible/health-accommodating roles, aspirational, first-step, growth-oriented framing.
+29
+Farm & Land-Based Aspiring Job Seeker — Skills Need
+Skills
+Farm & Land-Based
+S3 Career Growth Intent
+Curated job and training opportunity alerts, local, crop-season-aware framing; peer-farmer language.
+30
+Home & Family-Based Aspiring Job Seeker — Skills Need
+Skills
+Home & Family-Based
+S3 Career Growth Intent
+Curated job and training opportunity alerts, family-benefit framing; flexible, home-compatible options.
+31
+Employed & Working Aspiring Job Seeker — Skills Need
+Skills
+Employed & Working
+S3 Career Growth Intent
+Curated job and training opportunity alerts, time-efficiency and career-progression framing.
+32
+Youth & Job-Seeking Aspiring Job Seeker — Skills Need
+Skills
+Youth & Job-Seeking
+S3 Career Growth Intent
+Curated job and training opportunity alerts, aspirational, first-step, growth-oriented framing.
+33
+Farm & Land-Based Aspiring Job Seeker — Agriculture Need
+Agriculture
+Farm & Land-Based
+A2 Farmer Challenges
+Off-farm income or livelihood-diversification opportunity alerts, local, crop-season-aware framing; peer-farmer language.
+34
+Home & Family-Based Aspiring Job Seeker — Agriculture Need
+Agriculture
+Home & Family-Based
+A2 Farmer Challenges
+Off-farm income or livelihood-diversification opportunity alerts, family-benefit framing; flexible, home-compatible options.
+35
+Employed & Working Aspiring Job Seeker — Agriculture Need
+Agriculture
+Employed & Working
+A2 Farmer Challenges
+Off-farm income or livelihood-diversification opportunity alerts, time-efficiency and career-progression framing.
+36
+Youth & Job-Seeking Aspiring Job Seeker — Agriculture Need
+Agriculture
+Youth & Job-Seeking
+A2 Farmer Challenges
+Off-farm income or livelihood-diversification opportunity alerts, aspirational, first-step, growth-oriented framing.
+B4 — Benefit Seeker (Scheme Seeker)
+#
+Persona
+Life-Need Domain
+Life-Context
+Key HPNS Bucket
+Notification Angle
+37
+Farm & Land-Based Benefit Seeker — Health Need
+Health
+Farm & Land-Based
+H3 Health Scheme Adoption
+Eligibility confirmation + document checklist for a named health scheme, local, crop-season-aware framing; peer-farmer language.
+38
+Home & Family-Based Benefit Seeker — Health Need
+Health
+Home & Family-Based
+H3 Health Scheme Adoption
+Eligibility confirmation + document checklist for a named health scheme, family-benefit framing; flexible, home-compatible options.
+39
+Employed & Working Benefit Seeker — Health Need
+Health
+Employed & Working
+H3 Health Scheme Adoption
+Eligibility confirmation + document checklist for a named health scheme, time-efficiency and career-progression framing.
+40
+Youth & Job-Seeking Benefit Seeker — Health Need
+Health
+Youth & Job-Seeking
+H3 Health Scheme Adoption
+Eligibility confirmation + document checklist for a named health scheme, aspirational, first-step, growth-oriented framing.
+41
+Farm & Land-Based Benefit Seeker — Skills Need
+Skills
+Farm & Land-Based
+S4 Skill Ecosystem Participation
+Eligibility + steps for a skilling scheme or stipend, local, crop-season-aware framing; peer-farmer language.
+42
+Home & Family-Based Benefit Seeker — Skills Need
+Skills
+Home & Family-Based
+S4 Skill Ecosystem Participation
+Eligibility + steps for a skilling scheme or stipend, family-benefit framing; flexible, home-compatible options.
+43
+Employed & Working Benefit Seeker — Skills Need
+Skills
+Employed & Working
+S4 Skill Ecosystem Participation
+Eligibility + steps for a skilling scheme or stipend, time-efficiency and career-progression framing.
+44
+Youth & Job-Seeking Benefit Seeker — Skills Need
+Skills
+Youth & Job-Seeking
+S4 Skill Ecosystem Participation
+Eligibility + steps for a skilling scheme or stipend, aspirational, first-step, growth-oriented framing.
+45
+Farm & Land-Based Benefit Seeker — Agriculture Need
+Agriculture
+Farm & Land-Based
+A6 Scheme & Financial Enablement
+Eligibility confirmation + document checklist for a named agri subsidy, local, crop-season-aware framing; peer-farmer language.
+46
+Home & Family-Based Benefit Seeker — Agriculture Need
+Agriculture
+Home & Family-Based
+A6 Scheme & Financial Enablement
+Eligibility confirmation + document checklist for a named agri subsidy, family-benefit framing; flexible, home-compatible options.
+47
+Employed & Working Benefit Seeker — Agriculture Need
+Agriculture
+Employed & Working
+A6 Scheme & Financial Enablement
+Eligibility confirmation + document checklist for a named agri subsidy, time-efficiency and career-progression framing.
+48
+Youth & Job-Seeking Benefit Seeker — Agriculture Need
+Agriculture
+Youth & Job-Seeking
+A6 Scheme & Financial Enablement
+Eligibility confirmation + document checklist for a named agri subsidy, aspirational, first-step, growth-oriented framing.
+B5 — Local Service Explorer (Service Explorer)
+#
+Persona
+Life-Need Domain
+Life-Context
+Key HPNS Bucket
+Notification Angle
+49
+Farm & Land-Based Local Service Explorer — Health Need
+Health
+Farm & Land-Based
+H2 Healthcare Access & Affordability
+Nearby facility or health-camp alert with distance and cost shown upfront, local, crop-season-aware framing; peer-farmer language.
+50
+Home & Family-Based Local Service Explorer — Health Need
+Health
+Home & Family-Based
+H2 Healthcare Access & Affordability
+Nearby facility or health-camp alert with distance and cost shown upfront, family-benefit framing; flexible, home-compatible options.
+51
+Employed & Working Local Service Explorer — Health Need
+Health
+Employed & Working
+H2 Healthcare Access & Affordability
+Nearby facility or health-camp alert with distance and cost shown upfront, time-efficiency and career-progression framing.
+52
+Youth & Job-Seeking Local Service Explorer — Health Need
+Health
+Youth & Job-Seeking
+H2 Healthcare Access & Affordability
+Nearby facility or health-camp alert with distance and cost shown upfront, aspirational, first-step, growth-oriented framing.
+53
+Farm & Land-Based Local Service Explorer — Skills Need
+Skills
+Farm & Land-Based
+S5 Economic Opportunity Marketplace
+Nearby training center or gig/service listing alert, local, crop-season-aware framing; peer-farmer language.
+54
+Home & Family-Based Local Service Explorer — Skills Need
+Skills
+Home & Family-Based
+S5 Economic Opportunity Marketplace
+Nearby training center or gig/service listing alert, family-benefit framing; flexible, home-compatible options.
+55
+Employed & Working Local Service Explorer — Skills Need
+Skills
+Employed & Working
+S5 Economic Opportunity Marketplace
+Nearby training center or gig/service listing alert, time-efficiency and career-progression framing.
+56
+Youth & Job-Seeking Local Service Explorer — Skills Need
+Skills
+Youth & Job-Seeking
+S5 Economic Opportunity Marketplace
+Nearby training center or gig/service listing alert, aspirational, first-step, growth-oriented framing.
+57
+Farm & Land-Based Local Service Explorer — Agriculture Need
+Agriculture
+Farm & Land-Based
+A4 Water & Infrastructure
+Nearby agri-service, equipment, or advisory center alert, local, crop-season-aware framing; peer-farmer language.
+58
+Home & Family-Based Local Service Explorer — Agriculture Need
+Agriculture
+Home & Family-Based
+A4 Water & Infrastructure
+Nearby agri-service, equipment, or advisory center alert, family-benefit framing; flexible, home-compatible options.
+59
+Employed & Working Local Service Explorer — Agriculture Need
+Agriculture
+Employed & Working
+A4 Water & Infrastructure
+Nearby agri-service, equipment, or advisory center alert, time-efficiency and career-progression framing.
+60
+Youth & Job-Seeking Local Service Explorer — Agriculture Need
+Agriculture
+Youth & Job-Seeking
+A4 Water & Infrastructure
+Nearby agri-service, equipment, or advisory center alert, aspirational, first-step, growth-oriented framing.
+4. Cross-Cutting / Special Personas (6)
+These sit outside the 5×3×4 grid — they're triggered by a data condition rather than a combination of the three axes, and can apply on top of any of the 60 core personas above.
+ID
+Persona
+Trigger (schema condition)
+How it changes the approach
+X1
+New / Dormant Signup
+Near-zero values across content_score, scheme_score, job_score, service_score, and minimal engagement_time_min, regardless of primary_category.
+Activation sequence, not a nurture or conversion sequence — first goal is a single opened notification and one completed in-app action.
+X2
+Multi-Domain Achiever
+primary_category = High Converter with comparably elevated scores across more than one domain-relevant signal — behaviourally active across Health, Skills and Agriculture rather than one.
+Rotate domain focus notification-by-notification instead of committing to a single lean; track which domain each message converts on to progressively narrow the persona.
+X3
+Incomplete-Profile User
+Missing values in key classifying fields (age, Occupation, Working_status).
+Fall back to primary_category + notification_tag only (Rules 1–3 from the assignment logic); avoid domain- or life-context-specific claims until more profile data is captured.
+X4
+Economically Vulnerable Overlay
+bpl_category = True, or personal/family income at the lowest recorded bands.
+Cross-cutting priority flag applied on top of any of the 60 core personas — benefit/subsidy and free-service messaging is promoted ahead of paid or optional content for this user, regardless of their core persona.
+X5
+Minority-Language User
+preferred_language outside the three dominant languages (e.g. Punjabi, Tamil, Bengali, Assamese, Malayalam, Telugu, Odia, Gujarati, Kannada).
+Route to translation/localisation review before send; do not assume template copy translates cleanly — flag for manual QA given small volume per language.
+X6
+Urban-Context User
+district ∈ metro/urban areas (e.g. Mumbai City, Mumbai Suburban, Thane) rather than the predominantly rural district set.
+Adjust "nearby service/camp" content to urban-density assumptions (more facility options, shorter distances, different transport framing) rather than the rural-default copy used elsewhere.
+5. Assignment Flow — Placing Every User
+Step 1: Assign the Behavioural Segment (B1–B5) from primary_category — always populated, guarantees every user lands in one of five buckets before any further refinement.
+Step 2: Check for X1 (dormant) or X3 (incomplete profile) conditions — if triggered, stop here and use the reduced-data version of the persona until more signal is available.
+Step 3: Assign the Life-Context Cluster (LC1–LC4) from Occupation / Working_status.
+Step 4: Assign the Life-Need Domain (D1–D3) — provisionally from Occupation/age/family fields as outlined in the prior framework, then confirmed/overridden once individual survey responses are joined by user_id.
+Step 5: Apply any remaining overlays that fit — X2 (multi-domain), X4 (BPL/economic vulnerability), X5 (minority language), X6 (urban context) — these can stack on top of the core 60.
+Because Steps 1 and 2 alone already guarantee a placement for every user, the 60-persona grid and the 6 overlays exist purely to sharpen an already-complete assignment — no user can fall outside the taxonomy.
+6. Note on Scope
+As before, this taxonomy is built from column names and the survey's question/bucket structure only — no individual user records were reviewed to produce it. The Life-Need Domain assignment in particular is a schema-level placeholder (Occupation/age-based) until a per-user survey response table, keyed on user_id, is joined to the profile data. At that point Step 4 should switch from the proxy rule to the actual signal values captured in the questionnaire.

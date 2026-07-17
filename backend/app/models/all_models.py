@@ -46,13 +46,14 @@ class User(Base, SoftDeleteMixin, AuditMixin):
 
 class Scheme(Base, SoftDeleteMixin, AuditMixin):
     __tablename__ = "schemes"
+    __table_args__ = {"extend_existing": True}
     
     id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=False)
-    agency = Column(String(255), nullable=False)
+    title = Column(String(255), nullable=True)
+    description = Column(Text, nullable=True)
+    agency = Column(String(255), nullable=True)
     benefit_details = Column(Text, nullable=True)
-    eligibility_criteria = Column(JSON, nullable=False)  # JSON matching criteria
+    eligibility_criteria = Column(Text, nullable=True)  # String or JSON matching criteria
 
 class Job(Base, SoftDeleteMixin, AuditMixin):
     __tablename__ = "jobs"

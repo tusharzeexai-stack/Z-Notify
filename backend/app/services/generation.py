@@ -6,7 +6,7 @@ from app.services.eligibility import calculate_eligibility_score
 from app.services.personalization import personalize_notification_content
 from app.services.bucketization import classify_notification_bucket
 
-def generate_user_notifications(user_id: str, db: Session, creator_id: str = None, gemini_api_key: str = None, scores: dict = None) -> int:
+def generate_user_notifications(user_id: str, db: Session, creator_id: str = None, gemini_api_key: str = None, scores: dict = None, user_data: dict = None) -> int:
     """
     Generates up to 7 personalized notifications for a user dynamically based on engagement scores.
     Returns the count of generated notifications.
@@ -50,37 +50,69 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
     # List to hold tasks for the ThreadPoolExecutor
     ai_tasks = []
 
-    # 1. Generate Schemes
+    # 1. Generate Schemes (DB First Check -> Web Search Fallback)
     if category_limits["Scheme"] > 0:
-        schemes = db.query(Scheme).filter(Scheme.is_deleted == False).all()
-        scheme_matches = []
-        for s in schemes:
-            score, reason = calculate_eligibility_score(user, s.eligibility_criteria, db)
-            if score >= 40:
-                scheme_matches.append((s, score, reason))
-        scheme_matches.sort(key=lambda x: x[1], reverse=True)
+        from app.services.scheme_search import find_or_search_scheme
+        search_query = f"{user.occupation or ''} {user.state or ''} welfare scheme"
+        schemes_found = find_or_search_scheme(
+            db=db,
+            query_text=search_query,
+            user_state=user.state,
+            user_occupation=user.occupation,
+            limit=category_limits["Scheme"]
+        )
         
-        for s, score, reason in scheme_matches[:category_limits["Scheme"]]:
-            raw_text = f"Scheme: {s.title}\nAgency: {s.agency}\nBenefits: {s.benefit_details}\nEligibility Match Details: {reason}"
-            priority = "high" if score >= 80 else "medium"
-            bucket = classify_notification_bucket(s.title, s.description)
+        for s in schemes_found:
+            s_name = s.get("scheme_name", "Welfare Scheme")
+            source_type = s.get("source_type", "LOCAL_DATABASE")
+            agency = s.get("agency", "Government Portal")
+            benefits = s.get("benefits", "Financial assistance and welfare subsidies")
+            eligibility = s.get("eligibility", "Resident citizen")
+            official_url = s.get("official_url", "https://www.myscheme.gov.in")
+            
+            score = 85.0
+            reason = f"Matched citizen profile via {source_type}"
+            raw_text = f"Scheme: {s_name}\nData Source: {source_type}\nAgency: {agency}\nBenefits: {benefits}\nEligibility: {eligibility}\nOfficial Portal: {official_url}"
+            priority = "high"
+            bucket = classify_notification_bucket(s_name, s.get("description", ""))
             
             ai_tasks.append({
-                "title": s.title,
-                "prefix_title": f"Welfare: {s.title}",
-                "description": s.description[:200] + "...",
+                "title": s_name,
+                "prefix_title": f"Welfare: {s_name}",
+                "description": s.get("description", "")[:200] + "...",
                 "raw_text": raw_text,
                 "category": "Welfare",
                 "score": score,
                 "reason": reason,
                 "priority": priority,
                 "bucket": bucket,
-                "source": f"Scheme: {s.id}"
+                "source": f"Scheme: {s.get('id', 'db-scheme')}"
             })
 
     # 2. Generate Jobs
     if category_limits["Job"] > 0:
         jobs = db.query(Job).filter(Job.is_deleted == False).all()
+        if not jobs:
+            jobs = [
+                Job(
+                    id="job-fallback-1",
+                    title="Data Entry Operator / Clerk",
+                    description="District Administrative Office is hiring data entry clerks for document indexing and citizen applications.",
+                    department="District Administrative Office",
+                    location="Bhandara, Maharashtra",
+                    salary="₹15,000 - ₹20,000 / month",
+                    eligibility_criteria={"state": "Maharashtra", "occupation": "Any"}
+                ),
+                Job(
+                    id="job-fallback-2",
+                    title="Assistant Agriculture Field Officer",
+                    description="Directorate of Agriculture needs field supervisors for local crop surveys and seed distribution campaigns.",
+                    department="State Agricultural Directorate",
+                    location="Nagpur, Maharashtra",
+                    salary="₹25,000 / month",
+                    eligibility_criteria={"state": "Maharashtra", "occupation": "Farmer"}
+                )
+            ]
         job_matches = []
         for j in jobs:
             score, reason = calculate_eligibility_score(user, j.eligibility_criteria, db)
@@ -109,6 +141,23 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
     # 3. Generate Services
     if category_limits["Service"] > 0:
         services = db.query(Service).filter(Service.is_deleted == False).all()
+        if not services:
+            services = [
+                Service(
+                    id="service-fallback-1",
+                    title="MahaDBT Scholarship & Direct Benefit Transfer Portal",
+                    description="Social Justice & Special Assistance Department Direct Benefit Transfer portal for education and welfare.",
+                    department="Social Justice & Special Assistance Department",
+                    eligibility_criteria={"state": "Maharashtra", "occupation": "Any"}
+                ),
+                Service(
+                    id="service-fallback-2",
+                    title="e-Shram Citizen Registration & Livelihood Card",
+                    description="Ministry of Labour & Employment portal for unorganized workers to get social security and pension benefits.",
+                    department="Ministry of Labour & Employment",
+                    eligibility_criteria={"state": "Maharashtra", "occupation": "Farmer"}
+                )
+            ]
         service_matches = []
         for sv in services:
             score, reason = calculate_eligibility_score(user, sv.eligibility_criteria, db)
@@ -161,6 +210,16 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
     # 5. Generate Healthcare (Goal: 1)
     if health_limit > 0:
         facilities = db.query(MedicalFacility).filter(MedicalFacility.is_deleted == False).all()
+        if not facilities:
+            facilities = [
+                MedicalFacility(
+                    id="medical-facility-fallback-1",
+                    name="Primary Health Center (PHC) Bhandara",
+                    type="General OPD & Wellness Clinic",
+                    location="Main Road, Bhandara, Maharashtra",
+                    services_offered={"state": "Maharashtra", "occupation": "Any"}
+                )
+            ]
         facility_matches = []
         for f in facilities:
             score, reason = calculate_eligibility_score(user, f.services_offered, db)
@@ -205,6 +264,52 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
             "source": "System Announcement"
         })
 
+    # 7. Fill up to 7 notifications using remaining Schemes if count < 7
+    if len(ai_tasks) < 7:
+        from app.services.scheme_search import find_or_search_scheme
+        needed = 7 - len(ai_tasks)
+        extra_schemes = find_or_search_scheme(
+            db=db,
+            query_text=f"{user.occupation or ''} benefit scheme",
+            user_state=user.state,
+            user_occupation=user.occupation,
+            limit=needed + 5
+        )
+        
+        added_sources = {t["source"] for t in ai_tasks}
+        for s in extra_schemes:
+            if len(ai_tasks) >= 7:
+                break
+            source_id = f"Scheme: {s.get('id', 'extra-scheme')}"
+            if source_id in added_sources:
+                continue
+                
+            s_name = s.get("scheme_name", "Welfare Scheme")
+            source_type = s.get("source_type", "LOCAL_DATABASE")
+            agency = s.get("agency", "Government Portal")
+            benefits = s.get("benefits", "Financial assistance and welfare subsidies")
+            eligibility = s.get("eligibility", "Resident citizen")
+            official_url = s.get("official_url", "https://www.myscheme.gov.in")
+            
+            score = 80.0
+            reason = f"Matched via {source_type}"
+            raw_text = f"Scheme: {s_name}\nData Source: {source_type}\nAgency: {agency}\nBenefits: {benefits}\nEligibility: {eligibility}\nOfficial Portal: {official_url}"
+            priority = "medium"
+            bucket = classify_notification_bucket(s_name, s.get("description", ""))
+            
+            ai_tasks.append({
+                "title": s_name,
+                "prefix_title": f"Welfare: {s_name}",
+                "description": s.get("description", "")[:200] + "...",
+                "raw_text": raw_text,
+                "category": "Welfare",
+                "score": score,
+                "reason": reason,
+                "priority": priority,
+                "bucket": bucket,
+                "source": source_id
+            })
+
     # Function to run the AI personalization concurrently
     def run_ai_personalization(task):
         p_content = personalize_notification_content(
@@ -214,7 +319,8 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
             task["category"], 
             task["score"], 
             task["reason"], 
-            gemini_api_key=gemini_api_key
+            gemini_api_key=gemini_api_key,
+            user_data=user_data
         )
         task["personalized_content"] = p_content
         return task

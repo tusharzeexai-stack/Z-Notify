@@ -1,0 +1,53 @@
+domain,bucket_id,bucket_name,question_title
+Agriculture,A1,Farmer Identity & Scale,Do you do farming?
+Agriculture,A1,Farmer Identity & Scale,Do you own agricultural land?
+Agriculture,A1,Farmer Identity & Scale,"If yes, how much land do you have?"
+Agriculture,A2,Farmer Challenges,What major difficulties do you face in farming?
+Agriculture,A2,Farmer Challenges,What is your biggest problem at work?
+Agriculture,A3,Production System,How many crops do you grow in one year?
+Agriculture,A3,Production System,What types of crops do you grow?
+Agriculture,A3,Production System,From where do you get your seeds?
+Agriculture,A3,Production System,What farming method do you use?
+Agriculture,A4,Water & Infrastructure,What is your water source for farming?
+Agriculture,A4,Water & Infrastructure,What tools/machinery do you use?
+Agriculture,A4,Water & Infrastructure,What type of energy source do you use for farming?
+Agriculture,A4,Water & Infrastructure,Do you use safety gear while spraying medicines?
+Agriculture,A5,Market & Income Enhancement,Where do you sell your crop produce?
+Agriculture,A5,Market & Income Enhancement,"If exporting, through which channel do you export?"
+Agriculture,A5,Market & Income Enhancement,Do you do primary processing before selling your produce?
+Agriculture,A5,Market & Income Enhancement,Are you a member of any farmer group/company?
+Agriculture,A6,Scheme & Financial Enablement,Which government schemes have you availed?
+Agriculture,A6,Scheme & Financial Enablement,Do you receive subsidy on time?
+Agriculture,A6,Scheme & Financial Enablement,What difficulties do you face in availing schemes?
+Agriculture,A6,Scheme & Financial Enablement,What type of financial assistance do you find most useful for farming?
+Agriculture,A7,Knowledge & Advisory,"When you face crop-related issues, where do you get information from?"
+Agriculture,A7,Knowledge & Advisory,What type of information do you find most useful for farming?
+Agriculture,A7,Knowledge & Advisory,Where do you learn new ways of farming?
+Health,H1,Medical Need & Risk,Are you or any of your family members facing any health problem?
+Health,H1,Medical Need & Risk,What are the health issues being faced?
+Health,H1,Medical Need & Risk,What type of support would help improve mental health or reduce addiction/substance use?
+Health,H2,Healthcare Access & Affordability,Where do you usually go for treatment?
+Health,H2,Healthcare Access & Affordability,What is your annual out-of-pocket expenditure on health?
+Health,H2,Healthcare Access & Affordability,How far do you have to go for accessing healthcare?
+Health,H3,Health Scheme Adoption,Are you interested in availing free health services for yourself or your family?
+Health,H3,Health Scheme Adoption,Are you currently getting benefits of any health schemes?
+Health,H3,Health Scheme Adoption,How satisfied are you with the services provided under this scheme?
+Health,H3,Health Scheme Adoption,Why are you not enrolled in a scheme or what difficulties did you face during application?
+Health,H3,Health Scheme Adoption,What challenges have you faced while using the scheme?
+Health,H4,Preventive Wellness,Which system of medicine do you prefer?
+Health,H4,Preventive Wellness,"How often do you follow health-related habits (exercise, tobacco, alcohol, unhealthy food)?"
+Skills,S1,Employment & Livelihood Status,What are you currently doing?
+Skills,S1,Employment & Livelihood Status,What is your current primary occupation?
+Skills,S2,Current Capability,What skills do you have?
+Skills,S2,Current Capability,How did you acquire this skill?
+Skills,S2,Current Capability,Do you have a certificate for this skill?
+Skills,S2,Current Capability,How many years of working experience do you have?
+Skills,S3,Career Growth Intent,Where do you want to work?
+Skills,S3,Career Growth Intent,Do you wish to do a job or self-employment after training?
+Skills,S3,Career Growth Intent,Would you be interested in gaining new skills via training?
+Skills,S3,Career Growth Intent,"If yes, which type of skill training would you prefer?"
+Skills,S4,Skill Ecosystem Participation,Are you enrolled in any Maharashtra government skill programs?
+Skills,S4,Skill Ecosystem Participation,"Have you completed training under this scheme? If yes, from where?"
+Skills,S4,Skill Ecosystem Participation,From where did you get information about skill development training?
+Skills,S4,Skill Ecosystem Participation,What is the main challenge you face in availing the training under this scheme?
+Skills,S5,Economic Opportunity Marketplace,Can we list your service/skill on an app?

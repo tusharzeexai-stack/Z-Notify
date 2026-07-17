@@ -14,6 +14,9 @@ import { ApprovedQueue } from './components/ApprovedQueue';
 import { UserManagement } from './components/UserManagement';
 import { Settings } from './components/Settings';
 
+import { GovernmentSchemes } from './components/GovernmentSchemes';
+import { GovernmentSchemeSync } from './components/GovernmentSchemeSync';
+
 // HPNS Pages
 import { Dashboard } from './pages/Dashboard';
 import { UserSearch } from './pages/UserSearch';
@@ -28,6 +31,7 @@ import { Schemes } from './pages/Schemes';
 import { Jobs } from './pages/Jobs';
 import { Services } from './pages/Services';
 import { MedicalFacilities } from './pages/MedicalFacilities';
+import { Cohorts } from './pages/Cohorts';
 
 const AppContent: React.FC = () => {
   const { currentUser, activeView, changeView, notifications } = useDashboard();
@@ -37,9 +41,7 @@ const AppContent: React.FC = () => {
   // Clear search term and edit item on view change to maintain clean states
   useEffect(() => {
     setSearchTerm('');
-    if (activeView !== 'compose') {
-      setEditItem(null);
-    }
+    setEditItem(null);
   }, [activeView]);
 
   // Atmospheric background particles
@@ -124,7 +126,9 @@ const AppContent: React.FC = () => {
       case 'users':
         return <Users />;
       case 'schemes':
-        return <Schemes />;
+        return <GovernmentSchemes />;
+      case 'scheme-sync':
+        return <GovernmentSchemeSync />;
       case 'jobs':
         return <Jobs />;
       case 'services':
@@ -133,6 +137,8 @@ const AppContent: React.FC = () => {
         return <MedicalFacilities />;
       case 'audit-logs':
         return <AuditLogs />;
+      case 'cohorts':
+        return <Cohorts />;
       default:
         return <Dashboard />;
     }

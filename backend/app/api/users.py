@@ -177,19 +177,13 @@ def populate_user_from_csv(user: User, db_user_id: str):
                         
                     user.gender = pr.get("gender") or user.gender
                     
-                    STATE_MAP = {
-                        "21": "Madhya Pradesh", "22": "Maharashtra", "29": "Punjab", "9": "Delhi",
-                        "14": "Karnataka", "31": "Tamil Nadu", "32": "Telangana", "11": "Gujarat",
-                        "33": "Uttar Pradesh", "4": "Bihar", "34": "West Bengal", "16": "Kerala"
-                    }
+                    from app.api.mappings import resolve_state, resolve_district, resolve_occupation, resolve_working_status
+
                     state_id = pr.get("state_id") or ""
-                    user.state = STATE_MAP.get(state_id, f"State-{state_id}" if state_id else "Any")
+                    user.state = resolve_state(state_id)
                     
-                    DISTRICT_MAP = {
-                        "345": "Balaghat", "537": "Tarn Taran", "399": "Chandrapur", "428": "Yavatmal"
-                    }
                     district_id = pr.get("district_id") or ""
-                    user.district = DISTRICT_MAP.get(district_id, f"District-{district_id}" if district_id else "Any")
+                    user.district = resolve_district(district_id)
                     
                     user.pincode = pr.get("pincode") or user.pincode
                     
@@ -197,7 +191,7 @@ def populate_user_from_csv(user: User, db_user_id: str):
                     user.education = f"Education-{education_id}" if education_id else "Any"
                     
                     occupation_id = pr.get("occupation_id") or ""
-                    user.occupation = f"Occupation-{occupation_id}" if occupation_id else "Any"
+                    user.occupation = resolve_occupation(occupation_id)
                     
                     personal_income_id = pr.get("personal_income_id")
                     try:
@@ -337,6 +331,7 @@ def upload_clicks_csv(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     profile_file: Optional[UploadFile] = File(None),
+    survey_file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(admin_required)
 ):
@@ -346,70 +341,7 @@ def upload_clicks_csv(
     import uuid
     from fastapi.responses import StreamingResponse
 
-    # Helper maps
-    STATE_MAP = {
-        "21": "Madhya Pradesh",
-        "22": "Maharashtra",
-        "29": "Punjab",
-        "9": "Delhi",
-        "14": "Karnataka",
-        "31": "Tamil Nadu",
-        "32": "Telangana",
-        "11": "Gujarat",
-        "33": "Uttar Pradesh",
-        "4": "Bihar",
-        "34": "West Bengal",
-        "16": "Kerala"
-    }
-
-    DISTRICT_MAP = {
-        "345": "Balaghat",
-        "537": "Tarn Taran",
-        "399": "Chandrapur",
-        "428": "Yavatmal"
-    }
-
-    def resolve_state(state_val: str) -> str:
-        if not state_val:
-            return "Any"
-        if state_val in STATE_MAP:
-            return STATE_MAP[state_val]
-        try:
-            clean_id = str(int(float(state_val)))
-            if clean_id in STATE_MAP:
-                return STATE_MAP[clean_id]
-        except ValueError:
-            pass
-        try:
-            float(state_val)
-            try:
-                clean_id = str(int(float(state_val)))
-                return f"State-{clean_id}"
-            except ValueError:
-                return f"State-{state_val}"
-        except ValueError:
-            return state_val
-
-    def resolve_district(district_val: str) -> str:
-        if not district_val:
-            return "Any"
-        if district_val in DISTRICT_MAP:
-            return DISTRICT_MAP[district_val]
-        try:
-            clean_id = str(int(float(district_val)))
-            if clean_id in DISTRICT_MAP:
-                return DISTRICT_MAP[clean_id]
-        except ValueError:
-            pass
-        try:
-            float(district_val)
-            try:
-                clean_id = str(int(float(district_val)))
-                return f"District-{clean_id}"
-            except ValueError:
-                return f"District-{district_val}"
-        except ValueError:
-            return district_val
+    from app.api.mappings import resolve_state, resolve_district, resolve_occupation, resolve_working_status, resolve_family_type, resolve_income, resolve_house_ownership
 
     def resolve_age(age_str: str, dob_str: str) -> int:
         age_val = None
@@ -525,6 +457,56 @@ def upload_clicks_csv(
         for k in set(keys_to_index):
             profiles[k] = pr
 
+    # 2b. Parse survey file if provided, or load from root/public if it exists
+    survey_answers_by_user = {}
+    survey_content = None
+    if survey_file:
+        try:
+            survey_content = survey_file.file.read().decode("utf-8-sig")
+            survey_file.file.close()
+            # Also save survey answers to root for subsequent personalization lookups
+            with open("hsa survey answers .csv", "w", encoding="utf-8") as f:
+                f.write(survey_content)
+        except Exception as e:
+            print(f"Error reading survey file upload: {e}")
+            
+    if not survey_content:
+        # Fallback to local file in project directory
+        survey_paths = [
+            "hsa survey answers .csv",
+            "D:\\Z-Notify\\frontend\\public\\Survey\\hsa survey answers .csv",
+            "d:\\Z-Notify\\frontend\\public\\Survey\\hsa survey answers .csv",
+            "..\\frontend\\public\\Survey\\hsa survey answers .csv"
+        ]
+        for sp in survey_paths:
+            if os.path.exists(sp):
+                try:
+                    with open(sp, "r", encoding="utf-8-sig") as f:
+                        survey_content = f.read()
+                    break
+                except Exception as e:
+                    print(f"Error reading local survey file {sp}: {e}")
+
+    if survey_content:
+        try:
+            s_file = io.StringIO(survey_content)
+            s_reader = csv.DictReader(s_file)
+            for row in s_reader:
+                if row.get("survey_name") != "Health-Skill-Agriculture Survey (HSA)":
+                    continue
+                u_id = row.get("user_id")
+                if u_id:
+                    clean_u_id = u_id.strip()
+                    try:
+                        clean_u_id = str(int(float(clean_u_id)))
+                    except ValueError:
+                        pass
+                    if clean_u_id not in survey_answers_by_user:
+                        survey_answers_by_user[clean_u_id] = []
+                    survey_answers_by_user[clean_u_id].append(row)
+        except Exception as e:
+            print(f"Error parsing survey CSV rows: {e}")
+
     # 3. Calculate scores
     scored_records = []
     for r in rows:
@@ -589,55 +571,45 @@ def upload_clicks_csv(
         if age is None:
             age = 35
 
-        # Calculate primary category
+        # Calculate primary category - match reference CSV: "Content Reader", "Scheme Seeker", etc.
         scores_map = {
-            "Content": content_score,
-            "Scheme": scheme_score,
-            "Job": job_score,
-            "Service": service_score
+            "Content Reader": content_score,
+            "Scheme Seeker": scheme_score,
+            "Job Seeker": job_score,
+            "Service User": service_score
         }
         max_cat = max(scores_map, key=scores_map.get)
-        primary_category = max_cat if scores_map[max_cat] > 0 else "None"
+        primary_category = max_cat if scores_map[max_cat] > 0 else "Content Reader"
         
-        # Calculate notification tag
-        notification_tag = f"{primary_category} Alert" if primary_category != "None" else "No Alert"
+        # Get notification click count
+        notification_click = int(get_val("notification_click"))
+        
+        # Calculate notification tag - reference CSV shows "Not Responsive" or "Engaged"
+        notification_tag = "Engaged" if notification_click > 0 else "Not Responsive"
         
         # Calculate engagement time in minutes
         engagement_time_min = round(eng_msec / 60000.0, 2)
         
-        # Get notification click count
-        notification_click = int(get_val("notification_click"))
         
         # Get other demographic profile fields
         preferred_language = p.get("preferred_language", "") if p else ""
         mobile_no = p.get("mobile_no", "") if p else ""
         bpl_category = p.get("bpl_category", "") if p else ""
         
-        personal_income_id = p.get("personal_income_id") or p.get("personal_income") or p.get("income") if p else None
-        try:
-            personal_income = float(personal_income_id) * 30000.0 if personal_income_id else 0.0
-        except ValueError:
-            try:
-                personal_income = float(personal_income_id) if personal_income_id else 0.0
-            except ValueError:
-                personal_income = 0.0
+        personal_income_id = p.get("personal_income_id") or p.get("personal_income") if p else ""
+        personal_income = resolve_income(personal_income_id)
             
-        family_income_id = p.get("family_income_id") or p.get("family_income") if p else None
-        try:
-            family_income = float(family_income_id) * 30000.0 if family_income_id else 0.0
-        except ValueError:
-            try:
-                family_income = float(family_income_id) if family_income_id else 0.0
-            except ValueError:
-                family_income = 0.0
+        family_income_id = p.get("family_income_id") or p.get("family_income") if p else ""
+        family_income = resolve_income(family_income_id)
             
         family_type_id = p.get("family_type_id", "") if p else ""
+        family_type = resolve_family_type(family_type_id)
         
         occupation_id = p.get("occupation_id") or p.get("occupation") if p else ""
-        Occupation = f"Occupation-{occupation_id}" if (occupation_id and str(occupation_id).isdigit()) else (occupation_id or "Any")
+        Occupation = resolve_occupation(occupation_id)
         
         working_status_id = p.get("working_status_id") or p.get("working_status") if p else ""
-        Working_status = f"Working-{working_status_id}" if (working_status_id and str(working_status_id).isdigit()) else (working_status_id or "Any")
+        Working_status = resolve_working_status(working_status_id)
         
         district_id = p.get("district_id") or p.get("district") if p else ""
         district = resolve_district(district_id)
@@ -645,7 +617,7 @@ def upload_clicks_csv(
         pincode = p.get("pincode", "") if p else ""
         
         house_ownership_id = p.get("house_ownership_id") or p.get("house_ownership") if p else ""
-        house_ownership = f"House-{house_ownership_id}" if (house_ownership_id and str(house_ownership_id).isdigit()) else (house_ownership_id or "Own House")
+        house_ownership = resolve_house_ownership(house_ownership_id)
 
         gender = p.get("gender") if p else "Male"
         marital_status_id = p.get("marital_status_id") or p.get("marital_status") if p else ""
@@ -658,6 +630,41 @@ def upload_clicks_csv(
         state = resolve_state(state_id)
         education_id = p.get("education_id") or p.get("education") if p else ""
         education = f"Education-{education_id}" if (education_id and str(education_id).isdigit()) else (education_id or "Any")
+
+        # Calculate survey domain counts
+        survey_counts = None
+        user_survey_answers = survey_answers_by_user.get(user_id_str)
+        if not user_survey_answers:
+            # try raw click record user_id
+            user_survey_answers = survey_answers_by_user.get(str(user_id).strip())
+            
+        if user_survey_answers:
+            from app.api.survey_scoring import bucket_user_answers
+            bucketed_res = bucket_user_answers(user_survey_answers)
+            survey_counts = bucketed_res["domain_counts"]
+            b_counts = bucketed_res["bucket_counts"]
+        else:
+            b_counts = {k: 0 for k in ("A1", "A2", "A3", "A4", "A5", "A6", "A7", "H1", "H2", "H3", "H4", "S1", "S2", "S3", "S4", "S5")}
+
+        # Assign persona using the 66-persona taxonomy
+        from app.api.survey_scoring import assign_persona
+        assigned_persona_id, assigned_persona_name, overlays = assign_persona(
+            primary_category=primary_category,
+            occupation=Occupation,
+            working_status=Working_status,
+            age=age,
+            bpl_category=(bpl_category == "TRUE" or bpl_category is True or str(bpl_category).lower() in ("true", "yes", "1")),
+            personal_income=personal_income,
+            family_income=family_income,
+            district=district,
+            preferred_language=preferred_language,
+            engagement_time_min=engagement_time_min,
+            content_score=content_score,
+            scheme_score=scheme_score,
+            job_score=job_score,
+            service_score=service_score,
+            survey_counts=survey_counts
+        )
 
         scored_records.append({
             "user_id": user_id,
@@ -676,19 +683,21 @@ def upload_clicks_csv(
             "bpl_category": bpl_category,
             "personal_income": personal_income,
             "family_income": family_income,
-            "family_type_id": family_type_id,
+            "family_type_id": family_type,
             "Occupation": Occupation,
             "Working_status": Working_status,
             "district": district,
             "pincode": pincode,
             "house_ownership": house_ownership,
-            "gender": gender,
-            "marital_status": marital_status,
-            "caste_category": caste_category,
-            "disability_status": disability_status,
-            "state": state,
-            "education": education,
-            "total_score": round(total_score, 2)
+            "total_score": round(total_score, 2),
+            
+            # Persona and survey bucket output fields
+            "assigned_persona_id": assigned_persona_id,
+            "assigned_persona_name": assigned_persona_name,
+            "overlays_applied": ", ".join(overlays),
+            "health_bucket_score": survey_counts["Health"] if survey_counts else 0,
+            "agri_bucket_score": survey_counts["Agriculture"] if survey_counts else 0,
+            "skills_bucket_score": survey_counts["Skills"] if survey_counts else 0
         })
         
     scored_records.sort(key=lambda x: x["total_score"], reverse=True)
@@ -704,14 +713,15 @@ def upload_clicks_csv(
         "mobile_no", "bpl_category", "personal_income", "family_income",
         "family_type_id", "Occupation", "Working_status", "district",
         "pincode", "house_ownership",
-        "gender", "marital_status", "caste_category", "disability_status", "state", "education"
+        
+        "assigned_persona_id", "assigned_persona_name", "overlays_applied",
+        "health_bucket_score", "agri_bucket_score", "skills_bucket_score"
     ]
-    csv_writer = csv.DictWriter(output_io, fieldnames=writer_fieldnames)
+    csv_writer = csv.DictWriter(output_io, fieldnames=writer_fieldnames, extrasaction='ignore')
     csv_writer.writeheader()
     
     for rec in scored_records:
-        rec_to_write = {k: rec[k] for k in writer_fieldnames}
-        csv_writer.writerow(rec_to_write)
+        csv_writer.writerow(rec)
     
     output_io.seek(0)
     
@@ -733,57 +743,8 @@ def background_upsert_users(profiles_list: list):
     try:
         default_password_hash = get_password_hash("ZNotifyDefault123!")
         
-        STATE_MAP = {
-            "21": "Madhya Pradesh", "22": "Maharashtra", "29": "Punjab", "9": "Delhi",
-            "14": "Karnataka", "31": "Tamil Nadu", "32": "Telangana", "11": "Gujarat",
-            "33": "Uttar Pradesh", "4": "Bihar", "34": "West Bengal", "16": "Kerala"
-        }
-        DISTRICT_MAP = {
-            "345": "Balaghat", "537": "Tarn Taran", "399": "Chandrapur", "428": "Yavatmal"
-        }
-
-        def resolve_state(state_val: str) -> str:
-            if not state_val:
-                return "Any"
-            if state_val in STATE_MAP:
-                return STATE_MAP[state_val]
-            try:
-                clean_id = str(int(float(state_val)))
-                if clean_id in STATE_MAP:
-                    return STATE_MAP[clean_id]
-            except ValueError:
-                pass
-            try:
-                float(state_val)
-                try:
-                    clean_id = str(int(float(state_val)))
-                    return f"State-{clean_id}"
-                except ValueError:
-                    return f"State-{state_val}"
-            except ValueError:
-                return state_val
-
-        def resolve_district(district_val: str) -> str:
-            if not district_val:
-                return "Any"
-            if district_val in DISTRICT_MAP:
-                return DISTRICT_MAP[district_val]
-            try:
-                clean_id = str(int(float(district_val)))
-                if clean_id in DISTRICT_MAP:
-                    return DISTRICT_MAP[clean_id]
-            except ValueError:
-                pass
-            try:
-                float(district_val)
-                try:
-                    clean_id = str(int(float(district_val)))
-                    return f"District-{clean_id}"
-                except ValueError:
-                    return f"District-{district_val}"
-            except ValueError:
-                return district_val
-
+        from app.api.mappings import resolve_state, resolve_district, resolve_occupation, resolve_working_status, resolve_family_type, resolve_income, resolve_house_ownership
+        
         def resolve_age(age_str: str, dob_str: str) -> int:
             age_val = None
             if age_str:
@@ -871,7 +832,7 @@ def background_upsert_users(profiles_list: list):
             
             occupation_id = pr.get("occupation_id") or pr.get("occupation") or ""
             if occupation_id:
-                user.occupation = f"Occupation-{occupation_id}" if str(occupation_id).isdigit() else occupation_id
+                user.occupation = resolve_occupation(occupation_id)
             
             personal_income_id = pr.get("personal_income_id") or pr.get("personal_income") or pr.get("income")
             if personal_income_id:

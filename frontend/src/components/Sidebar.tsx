@@ -70,22 +70,13 @@ export const Sidebar: React.FC = () => {
               <p className="text-[10px] text-outline font-bold px-md uppercase tracking-widest mb-xs">HPNS Operations</p>
               {isSuper && (
                 <>
-                  <button className={getLinkClass('user-search')} onClick={(e) => handleLinkClick(e, 'user-search')}>
-                    <span className="material-symbols-outlined text-[18px]">person_search</span>
-                    <span>Target Matching</span>
-                  </button>
+
                   <button className={getLinkClass('notification-generator')} onClick={(e) => handleLinkClick(e, 'notification-generator')}>
                     <span className="material-symbols-outlined text-[18px]">bolt</span>
                     <span>Notification Generator</span>
                   </button>
-                  <button className={getLinkClass('eligibility-rules')} onClick={(e) => handleLinkClick(e, 'eligibility-rules')}>
-                    <span className="material-symbols-outlined text-[18px]">tune</span>
-                    <span>Scoring Matrix</span>
-                  </button>
-                  <button className={getLinkClass('user-management')} onClick={(e) => handleLinkClick(e, 'user-management')}>
-                    <span className="material-symbols-outlined text-[18px]">manage_accounts</span>
-                    <span>User Management</span>
-                  </button>
+
+
                 </>
               )}
               {!isSuper && (
@@ -117,10 +108,7 @@ export const Sidebar: React.FC = () => {
                   </span>
                 )}
               </button>
-              <button className={getLinkClass('buckets')} onClick={(e) => handleLinkClick(e, 'buckets')}>
-                <span className="material-symbols-outlined text-[18px]">category</span>
-                <span>Buckets Classifier</span>
-              </button>
+
               <button className={getLinkClass('delivery-center')} onClick={(e) => handleLinkClick(e, 'delivery-center')}>
                 <span className="material-symbols-outlined text-[18px]">hub</span>
                 <span>Delivery Queue</span>
@@ -139,6 +127,10 @@ export const Sidebar: React.FC = () => {
                   <span className="material-symbols-outlined text-[18px]">folder_open</span>
                   <span>Welfare Schemes</span>
                 </button>
+                <button className={getLinkClass('scheme-sync')} onClick={(e) => handleLinkClick(e, 'scheme-sync')}>
+                  <span className="material-symbols-outlined text-[18px]">sync_alt</span>
+                  <span>Scheme Sync Engine</span>
+                </button>
                 <button className={getLinkClass('jobs')} onClick={(e) => handleLinkClick(e, 'jobs')}>
                   <span className="material-symbols-outlined text-[18px]">work</span>
                   <span>Job Vacancies</span>
@@ -155,6 +147,10 @@ export const Sidebar: React.FC = () => {
                   <span className="material-symbols-outlined text-[18px]">history</span>
                   <span>System Audit</span>
                 </button>
+                <button className={getLinkClass('cohorts')} onClick={(e) => handleLinkClick(e, 'cohorts')}>
+                  <span className="material-symbols-outlined text-[18px]">hub</span>
+                  <span>Cohort Map</span>
+                </button>
               </div>
             )}
           </>
@@ -163,6 +159,10 @@ export const Sidebar: React.FC = () => {
             {/* Employee/Citizen View */}
             <div>
               <p className="text-[10px] text-outline font-bold px-md uppercase tracking-widest mb-xs">Citizen Portal</p>
+              <button className={getLinkClass('schemes')} onClick={(e) => handleLinkClick(e, 'schemes')}>
+                <span className="material-symbols-outlined text-[18px]">travel_explore</span>
+                <span>Government Schemes</span>
+              </button>
               <button className={getLinkClass('my-notifications')} onClick={(e) => handleLinkClick(e, 'my-notifications')}>
                 <span className="material-symbols-outlined text-[18px]">notifications</span>
                 <span className="flex-1">Inbox Alerts</span>

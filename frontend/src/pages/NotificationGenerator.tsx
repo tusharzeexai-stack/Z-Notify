@@ -1,15 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../context/DashboardContext';
 import { saveScoringRun } from '../utils/scoringStorage';
+import { loadDistrictMap, resolveField } from '../utils/mappings';
 
 export const NotificationGenerator: React.FC = () => {
   const { token, users, generateNotifications, fetchNotifications, saveDrafts, changeView } = useDashboard();
   
   // Tab control
-  const [activeTab, setActiveTab] = useState<'generate' | 'dashboard' | 'scoring'>('generate');
+  const [activeTab, setActiveTab] = useState<'generate' | 'dashboard' | 'scoring' | 'cohort'>('generate');
+
+  // Cohort-wise generation state
+  const [cohortGenMode, setCohortGenMode] = useState<'all' | 'single'>('all');
+  const [cohortGenSingle, setCohortGenSingle] = useState('');
+  const [cohortGenLoading, setCohortGenLoading] = useState(false);
+  const [cohortGenResults, setCohortGenResults] = useState<any[]>([]);
+  const [cohortGenError, setCohortGenError] = useState('');
+  const [cohortGenLog, setCohortGenLog] = useState<string[]>([]);
+  
+  useEffect(() => {
+    loadDistrictMap();
+  }, []);
   
   // Gemini API Key from LocalStorage or Server env
-  const geminiKey = '';
+  const geminiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
   // Input Type: 'single' (search) or 'comma' (bulk input of 5-10 UIDs)
   const [inputType, setInputType] = useState<'single' | 'comma'>('single');
@@ -32,6 +45,7 @@ export const NotificationGenerator: React.FC = () => {
   // Scoring tab states
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [surveyFile, setSurveyFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [scoredPreview, setScoredPreview] = useState<any[]>([]);
   const [scoringStats, setScoringStats] = useState<any>(null);
@@ -96,7 +110,7 @@ export const NotificationGenerator: React.FC = () => {
         const actualUid = matched ? matched.id : uid;
         
         let userScores = null;
-        let userData = { Name: matched ? matched.name : `Citizen ${actualUid.substring(0, 5)}`, Age: null };
+        let userData: any = { Name: matched ? matched.name : `Citizen ${actualUid.substring(0, 5)}`, Age: null };
         
         const savedRunsStr = localStorage.getItem('saved_scoring_runs');
         if (savedRunsStr) {
@@ -112,8 +126,41 @@ export const NotificationGenerator: React.FC = () => {
                   "Job": parseFloat(found.job_score) || 0,
                   "Service": parseFloat(found.service_score) || 0
                 };
-                if (found.Name || found.name) userData.Name = found.Name || found.name;
-                if (found.Age || found.age) userData.Age = found.Age || found.age;
+                
+                // Pack Demographics, Clicks Scores, and Survey Buckets into userData
+                userData = {
+                  Name: found.name || found.Name || userData.Name,
+                  Age: found.age || found.Age || null,
+                  gender: found.gender || "",
+                  preferred_language: found.preferred_language || "",
+                  bpl_category: found.bpl_category || "",
+                  personal_income: found.personal_income || "",
+                  family_income: found.family_income || "",
+                  family_type_id: found.family_type_id || "",
+                  Occupation: found.Occupation || found.occupation || "",
+                  Working_status: found.Working_status || found.working_status || "",
+                  district: found.district || "",
+                  pincode: found.pincode || "",
+                  house_ownership: found.house_ownership || "",
+                  
+                  // Score Metrics
+                  primary_category: found.primary_category || "",
+                  notification_tag: found.notification_tag || "",
+                  engagement_time_min: parseFloat(found.engagement_time_min) || 0,
+                  notification_click: parseInt(found.notification_click) || 0,
+                  content_score: parseFloat(found.content_score) || 0,
+                  scheme_score: parseFloat(found.scheme_score) || 0,
+                  job_score: parseFloat(found.job_score) || 0,
+                  service_score: parseFloat(found.service_score) || 0,
+                  
+                  // Survey Scoring Buckets
+                  assigned_persona_id: found.assigned_persona_id || "",
+                  assigned_persona_name: found.assigned_persona_name || "",
+                  overlays_applied: found.overlays_applied || "",
+                  health_bucket_score: parseInt(found.health_bucket_score) || 0,
+                  agri_bucket_score: parseInt(found.agri_bucket_score) || 0,
+                  skills_bucket_score: parseInt(found.skills_bucket_score) || 0
+                };
               }
             }
           } catch (e) {
@@ -177,9 +224,16 @@ export const NotificationGenerator: React.FC = () => {
     }
   };
 
+  const handleSurveyFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSurveyFile(e.target.files[0]);
+    }
+  };
+
   const handleResetUploads = () => {
     setUploadFile(null);
     setProfileFile(null);
+    setSurveyFile(null);
   };
 
   const handleUploadAndScore = async () => {
@@ -194,9 +248,12 @@ export const NotificationGenerator: React.FC = () => {
     if (profileFile) {
       formData.append('profile_file', profileFile);
     }
+    if (surveyFile) {
+      formData.append('survey_file', surveyFile);
+    }
 
     try {
-      const _apiBase = import.meta.env.VITE_API_URL || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:8001/api' : '/api');
+      const _apiBase = import.meta.env.VITE_API_URL || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:8000/api' : '/api');
       const response = await fetch(`${_apiBase}/users/upload-clicks`, {
         method: 'POST',
         headers: {
@@ -278,6 +335,25 @@ export const NotificationGenerator: React.FC = () => {
           avgService: roundToTwo(sumService / totalProcessed),
           maxScore: roundToTwo(maxScore)
         });
+
+        // Automatically save the run to citizens storage
+        const now = new Date();
+        const timestamp = now.toLocaleString('en-IN', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+          hour12: false
+        });
+        try {
+          const autoRun = {
+            id: Date.now().toString(),
+            timestamp,
+            data
+          };
+          await saveScoringRun(autoRun);
+          console.log(`Scoring run auto-saved at ${timestamp}`);
+        } catch (autoErr) {
+          console.error("Auto-saving scoring run failed:", autoErr);
+        }
       }
     } catch (err: any) {
       console.error(err);
@@ -394,6 +470,14 @@ export const NotificationGenerator: React.FC = () => {
             }`}
           >
             Scoring Engine
+          </button>
+          <button
+            onClick={() => setActiveTab('cohort')}
+            className={`px-lg py-sm font-label-md rounded text-label-md transition-all cursor-pointer ${
+              activeTab === 'cohort' ? 'bg-primary text-on-primary font-bold' : 'text-outline hover:text-on-surface'
+            }`}
+          >
+            Cohort-Wise
           </button>
         </div>
       </div>
@@ -592,10 +676,20 @@ export const NotificationGenerator: React.FC = () => {
                               </div>
 
                               {/* Matching Scheme Link */}
-                              <div className="flex items-center gap-xs text-[13px] font-bold text-primary hover:underline cursor-pointer">
-                                <span className="material-symbols-outlined text-[16px]">link</span>
-                                <span>{notif.title}</span>
-                              </div>
+                              {parsed.portal_link ? (
+                                <div 
+                                  onClick={() => window.open(parsed.portal_link.startsWith('http') ? parsed.portal_link : `https://${parsed.portal_link}`, '_blank')}
+                                  className="flex items-center gap-xs text-[13px] font-bold text-primary hover:underline cursor-pointer"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">link</span>
+                                  <span>Apply here: {parsed.portal_link}</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-xs text-[13px] font-bold text-outline">
+                                  <span className="material-symbols-outlined text-[16px]">link_off</span>
+                                  <span>No direct application link</span>
+                                </div>
+                              )}
 
                               {/* Badges bar */}
                               <div className="flex flex-wrap gap-xs pt-xs border-t border-outline-variant/30">
@@ -728,7 +822,7 @@ export const NotificationGenerator: React.FC = () => {
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'scoring' ? (
         /* Engagement Scoring Dashboard */
         <div className="space-y-lg">
           <div className="bg-surface-container p-lg border border-outline-variant rounded-xl space-y-lg">
@@ -743,7 +837,7 @@ export const NotificationGenerator: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-lg">
               {/* Card 1: Click Stream Activities */}
               <div className="bg-surface-container-high border border-outline-variant rounded-xl p-md flex flex-col justify-between space-y-md transition-all hover:shadow-md">
                 <div className="space-y-xs">
@@ -823,6 +917,46 @@ export const NotificationGenerator: React.FC = () => {
                   </label>
                 </div>
               </div>
+
+              {/* Card 3: Survey Answers */}
+              <div className="bg-surface-container-high border border-outline-variant rounded-xl p-md flex flex-col justify-between space-y-md transition-all hover:shadow-md">
+                <div className="space-y-xs">
+                  <div className="flex items-center gap-xs text-tertiary font-bold">
+                    <span className="px-sm py-[2px] bg-tertiary/20 text-tertiary text-[12px] rounded-full">Step 3</span>
+                    <span className="font-label-md uppercase tracking-wider text-[11px]">Survey Answers</span>
+                  </div>
+                  <h4 className="font-title-md text-on-surface font-bold">HSA Survey Answers</h4>
+                  <p className="text-[12px] text-on-surface-variant">
+                    Contains questionnaire responses: <code>user_id</code>, <code>question_title</code>, and <code>answer_display_value_string</code>. Refines Axis 2 Domain Mapping.
+                  </p>
+                </div>
+                
+                <div>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    id="survey-csv-upload"
+                    onChange={handleSurveyFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="survey-csv-upload"
+                    className={`w-full py-md border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-xs cursor-pointer transition-all hover:bg-surface-container-low ${
+                      surveyFile 
+                        ? 'border-tertiary/50 bg-tertiary/5 text-tertiary' 
+                        : 'border-outline-variant hover:border-tertiary text-outline'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-[32px]">
+                      {surveyFile ? 'task_alt' : 'assignment'}
+                    </span>
+                    <span className="font-bold text-body-sm px-sm text-center truncate w-full">
+                      {surveyFile ? surveyFile.name : 'Select Survey Answers CSV'}
+                    </span>
+                    <span className="text-[10px] text-outline">Optional • Refines Axis 2 Domain Mapping</span>
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center justify-between gap-md pt-md border-t border-outline-variant/30">
@@ -832,7 +966,7 @@ export const NotificationGenerator: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-md">
-                {(uploadFile || profileFile) && (
+                {(uploadFile || profileFile || surveyFile) && (
                   <button
                     onClick={handleResetUploads}
                     className="px-md py-sm border border-outline-variant hover:bg-surface-container-high text-on-surface rounded-lg font-bold transition-all text-body-sm active:scale-95"
@@ -924,7 +1058,7 @@ export const NotificationGenerator: React.FC = () => {
                       <th className="p-md">BPL Category</th>
                       <th className="p-md text-right">Personal Income</th>
                       <th className="p-md text-right">Family Income</th>
-                      <th className="p-md">Family Type ID</th>
+                      <th className="p-md">Family Type</th>
                       <th className="p-md">Occupation</th>
                       <th className="p-md">Working Status</th>
                       <th className="p-md">District</th>
@@ -953,14 +1087,14 @@ export const NotificationGenerator: React.FC = () => {
                         <td className="p-md uppercase font-semibold">{row.preferred_language || 'en'}</td>
                         <td className="p-md">{row.mobile_no}</td>
                         <td className="p-md">{row.bpl_category}</td>
-                        <td className="p-md text-right">₹{parseFloat(row.personal_income || "0").toLocaleString()}</td>
-                        <td className="p-md text-right">₹{parseFloat(row.family_income || "0").toLocaleString()}</td>
-                        <td className="p-md">{row.family_type_id}</td>
-                        <td className="p-md">{row.Occupation}</td>
-                        <td className="p-md">{row.Working_status}</td>
-                        <td className="p-md">{row.district}</td>
+                        <td className="p-md text-right">{resolveField(row.personal_income, 'income')}</td>
+                        <td className="p-md text-right">{resolveField(row.family_income, 'income')}</td>
+                        <td className="p-md">{resolveField(row.family_type || row.family_type_id, 'family')}</td>
+                        <td className="p-md">{resolveField(row.Occupation, 'occupation')}</td>
+                        <td className="p-md">{resolveField(row.Working_status, 'working')}</td>
+                        <td className="p-md">{resolveField(row.district, 'district')}</td>
                         <td className="p-md">{row.pincode}</td>
-                        <td className="p-md">{row.house_ownership}</td>
+                        <td className="p-md">{resolveField(row.house_ownership, 'house')}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -969,7 +1103,272 @@ export const NotificationGenerator: React.FC = () => {
             </div>
           )}
         </div>
-      )}
+      ) : activeTab === 'cohort' ? (
+        <CohortWiseGenerator
+          geminiKey={geminiKey}
+          cohortGenMode={cohortGenMode} setCohortGenMode={setCohortGenMode}
+          cohortGenSingle={cohortGenSingle} setCohortGenSingle={setCohortGenSingle}
+          cohortGenLoading={cohortGenLoading} setCohortGenLoading={setCohortGenLoading}
+          cohortGenResults={cohortGenResults} setCohortGenResults={setCohortGenResults}
+          cohortGenError={cohortGenError} setCohortGenError={setCohortGenError}
+          cohortGenLog={cohortGenLog} setCohortGenLog={setCohortGenLog}
+        />
+      ) : null}
     </div>
   );
 };
+
+// ─── Cohort-Wise Generator Component ─────────────────────────────────────────
+const COHORT_54 = (() => {
+  const BLABELS: Record<string,string> = { B1:'Content Reader', B3:'Job Hunter', B4:'Scheme Seeker', B5:'Service Explorer' };
+  const DLABELS: Record<string,string> = { D1:'Health Need', D2:'Skills Need', D3:'Agriculture Need' };
+  const LCLABELS: Record<string,string> = { LC1:'Farm & Land-Based', LC2:'Home & Family-Based', LC3:'Employed & Working', LC4:'Youth & Job-Seeking' };
+  const HPNS: Record<string,string> = { 'B1-D1':'H4','B1-D2':'S2','B1-D3':'A7','B3-D1':'H1/H2','B3-D2':'S3','B3-D3':'A2','B4-D1':'H3','B4-D2':'S4','B4-D3':'A6','B5-D1':'H2','B5-D2':'S5','B5-D3':'A4' };
+  const base: any[] = [];
+  for (const b of ['B1','B3','B4','B5']) for (const d of ['D1','D2','D3']) for (const lc of ['LC1','LC2','LC3','LC4'])
+    base.push({ id:`${b}-${d}-${lc}`, name:`${LCLABELS[lc]} ${BLABELS[b]} — ${DLABELS[d]}`, b, d, lc, bucket: HPNS[`${b}-${d}`]||'', eligibility: b==='B4', type:'base' });
+  const overlays = [
+    {id:'X1',name:'New / Dormant Signup',type:'overlay'},
+    {id:'X2',name:'Multi-Domain Achiever',type:'overlay'},
+    {id:'X3',name:'Incomplete-Profile User',type:'overlay'},
+    {id:'X4',name:'Economically Vulnerable',type:'overlay'},
+    {id:'X5',name:'Minority-Language User',type:'overlay'},
+    {id:'X6',name:'Urban-Context User',type:'overlay'},
+  ];
+  return [...base, ...overlays];
+})();
+
+const COHORT_SYSTEM_PROMPT = `You are the cohort-level notification-copy generation engine for a citizen-facing app covering Health, Skills, and Agriculture needs across Maharashtra.
+
+Generate exactly 7 distinct notifications per cohort supplied. Follow this exact flow for the 7 notifications:
+- 3 notifications based directly on the cohort's primary Domain Need (e.g., Agriculture, Skills, or Health).
+- 1 notification specifically for Healthcare / Clinics / Health awareness (regardless of their primary domain).
+- 2 notifications tailored strictly to their Life-Context and Behavior Segment (e.g., if they are "Employed & Working" and "Scheme Seeker", focus on working professional schemes).
+- 1 general citizen welfare or local awareness notification.
+
+Return a flat JSON array containing all generated objects. If you are given 1 cohort, return an array of 7 objects.
+
+Each object MUST have these fields:
+{
+  "cohort_id": string,
+  "cohort_name": string,
+  "notification_title_with_name": "must include {user_name} token",
+  "title_no_name_fallback": string,
+  "notification_body_generic": string,
+  "notification_body_templated": string,
+  "eligibility_check_required": boolean,
+  "location_token_required": boolean,
+  "cta_label": string,
+  "cadence_tier": "standard|win-back|activation",
+  "reasoning_note": string
+}
+
+Rules:
+- Behaviour codes: B1=Content Reader, B3=Job Hunter, B4=Scheme Seeker, B5=Service Explorer. B2 does NOT exist.
+- Domain: D1=Health, D2=Skills, D3=Agriculture.
+- Life-Context: LC1=Farm & Land-Based, LC2=Home & Family-Based, LC3=Employed & Working, LC4=Youth & Job-Seeking.
+- B4 cohorts are eligibility-relevant: write BOTH a generic variant (no named scheme) AND a templated variant with {scheme_name},{deadline},{district} tokens.
+- B3/B5 must include {district} in body. B1 may omit it.
+- Title under 6 words (excluding {user_name}); body under 25 words.
+- Never fabricate real scheme names, employers, deadlines or distances — use tokens only.
+- X1=activation cadence; X2/X3/X4/X5/X6=standard.
+- No fear-based language, no guaranteed outcomes, one CTA only.`;
+
+function CohortWiseGenerator({
+  geminiKey,
+  cohortGenMode, setCohortGenMode,
+  cohortGenSingle, setCohortGenSingle,
+  cohortGenLoading, setCohortGenLoading,
+  cohortGenResults, setCohortGenResults,
+  cohortGenError, setCohortGenError,
+  cohortGenLog, setCohortGenLog
+}: any) {
+  const targetCohorts = cohortGenMode === 'single'
+    ? COHORT_54.filter(c => c.id === cohortGenSingle)
+    : COHORT_54;
+
+  const handleGenerate = async () => {
+    if (!geminiKey || !geminiKey.trim()) { setCohortGenError('Please set the Gemini API key in the code.'); return; }
+    if (cohortGenMode === 'single' && !cohortGenSingle) { setCohortGenError('Please select a cohort.'); return; }
+    setCohortGenLoading(true); setCohortGenResults([]); setCohortGenError(''); setCohortGenLog([]);
+
+    const cohortList = targetCohorts.map(c =>
+      `Cohort ID: ${c.id}\nCohort Name: ${c.name}\nHPNS Bucket: ${(c as any).bucket||'N/A'}\nEligibility Check Required: ${(c as any).eligibility||false}`
+    ).join('\n\n');
+
+    const userPrompt = `Generate notifications for the following ${targetCohorts.length} cohort(s):\n\n${cohortList}`;
+    setCohortGenLog([`Sending ${targetCohorts.length} cohort(s) to Gemini...`]);
+
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey.trim()}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: COHORT_SYSTEM_PROMPT }] },
+            contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+            generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
+          })
+        }
+      );
+      if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+      const data = await res.json();
+      const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      setCohortGenLog(prev => [...prev, 'Response received. Parsing JSON...']);
+      // Strip markdown fences if present
+      const cleaned = raw.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+      const parsed = JSON.parse(cleaned);
+      setCohortGenResults(Array.isArray(parsed) ? parsed : [parsed]);
+      setCohortGenLog(prev => [...prev, `✓ ${Array.isArray(parsed) ? parsed.length : 1} notification template(s) generated.`]);
+    } catch (e: any) {
+      setCohortGenError(e.message || 'Failed to generate cohort notifications.');
+      setCohortGenLog(prev => [...prev, `✗ Error: ${e.message}`]);
+    } finally {
+      setCohortGenLoading(false);
+    }
+  };
+
+  const B_COLORS: Record<string,string> = {
+    B1:'bg-blue-500/15 text-blue-400 border-blue-500/30', B3:'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    B4:'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', B5:'bg-pink-500/15 text-pink-400 border-pink-500/30'
+  };
+
+  return (
+    <div className="space-y-lg">
+      {/* Header */}
+      <div className="bg-surface-container border border-outline-variant rounded-xl p-lg space-y-md">
+        <div className="flex justify-between items-start flex-wrap gap-md">
+          <div>
+            <h2 className="font-headline-sm text-on-surface font-bold flex items-center gap-sm">
+              <span className="material-symbols-outlined text-primary">hub</span>
+              Cohort-Wise Notification Generation
+            </h2>
+            <p className="font-body-sm text-on-surface-variant mt-xs">
+              Generates <strong>one notification template per cohort</strong> — not per user. Uses the HPNS v5 system prompt (B2 retired, 54 cohorts total).
+            </p>
+          </div>
+          <div className="flex gap-sm">
+            <div className="bg-primary/10 border border-primary/20 rounded-lg px-md py-sm text-center">
+              <p className="text-[10px] text-outline font-bold uppercase">Cohorts</p>
+              <p className="text-title-md font-bold text-primary">54</p>
+            </div>
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg px-md py-sm text-center">
+              <p className="text-[10px] text-outline font-bold uppercase">Base</p>
+              <p className="text-title-md font-bold text-amber-400">48</p>
+            </div>
+            <div className="bg-violet-500/10 border border-violet-500/20 rounded-lg px-md py-sm text-center">
+              <p className="text-[10px] text-outline font-bold uppercase">Overlays</p>
+              <p className="text-title-md font-bold text-violet-400">6</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-md pt-xs border-t border-outline-variant/30">
+          {/* Mode */}
+          <div className="space-y-xs">
+            <label className="font-label-sm text-label-sm text-on-surface-variant">Generation Mode</label>
+            <div className="flex bg-surface-container-low border border-outline-variant rounded-lg p-[3px]">
+              {(['all','single'] as const).map(m => (
+                <button key={m} onClick={() => setCohortGenMode(m)}
+                  className={`flex-1 py-xs px-md rounded text-[12px] font-bold cursor-pointer transition-all ${cohortGenMode===m?'bg-primary text-on-primary':'text-outline hover:text-on-surface'}`}>
+                  {m==='all'?'All 54 Cohorts':'Single Cohort'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Single cohort picker */}
+          {cohortGenMode === 'single' && (
+            <div className="space-y-xs">
+              <label className="font-label-sm text-label-sm text-on-surface-variant">Select Cohort</label>
+              <select value={cohortGenSingle} onChange={e => setCohortGenSingle(e.target.value)}
+                className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-md py-sm text-on-surface text-[12px] focus:outline-none cursor-pointer">
+                <option value="">— choose —</option>
+                <optgroup label="Base Cohorts (48)">
+                  {COHORT_54.filter(c => c.type==='base').map(c => (
+                    <option key={c.id} value={c.id}>{c.id} — {c.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Overlay Cohorts (6)">
+                  {COHORT_54.filter(c => c.type==='overlay').map(c => (
+                    <option key={c.id} value={c.id}>{c.id} — {c.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+          )}
+        </div>
+
+        {cohortGenError && (
+          <div className="bg-error/10 border border-error/30 rounded-lg p-md text-error text-[13px] font-medium">{cohortGenError}</div>
+        )}
+
+        <button onClick={handleGenerate} disabled={cohortGenLoading}
+          className="w-full bg-primary text-on-primary font-bold py-md rounded-lg flex items-center justify-center gap-sm cursor-pointer hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+          {cohortGenLoading
+            ? <><span className="material-symbols-outlined animate-spin text-[20px]">autorenew</span> Generating…</>
+            : <><span className="material-symbols-outlined text-[20px]">hub</span> Generate Cohort Notifications</>}
+        </button>
+
+        {cohortGenLog.length > 0 && (
+          <div className="bg-surface-container-low border border-outline-variant rounded-lg p-sm font-mono-code text-[11px] text-tertiary space-y-xs max-h-24 overflow-y-auto">
+            {cohortGenLog.map((l,i) => <div key={i}>{l}</div>)}
+          </div>
+        )}
+      </div>
+
+      {/* Results Grid */}
+      {cohortGenResults.length > 0 && (
+        <div className="space-y-md">
+          <div className="flex justify-between items-center">
+            <h3 className="font-bold text-on-surface flex items-center gap-sm">
+              <span className="material-symbols-outlined text-primary text-[20px]">inventory_2</span>
+              {cohortGenResults.length} Cohort Template{cohortGenResults.length!==1?'s':''} Generated
+            </h3>
+            <button onClick={() => { const blob=new Blob([JSON.stringify(cohortGenResults,null,2)],{type:'application/json'}); const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download='cohort_notifications_54.json'; a.click(); }}
+              className="bg-secondary text-on-secondary px-xl py-md font-label-md rounded-lg hover:opacity-90 active:scale-95 transition-all flex items-center gap-xs cursor-pointer font-bold shadow-md hover:shadow-lg">
+              <span className="material-symbols-outlined">save</span>
+              Save Cohort Generations
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-md">
+            {cohortGenResults.map((r: any, i: number) => {
+              const b = r.cohort_id?.split('-')[0] || '';
+              const badgeClass = B_COLORS[b] || 'bg-slate-500/20 text-slate-300 border-slate-500/30';
+              return (
+                <div key={i} className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden hover:border-outline transition-all hover:shadow-md">
+                  <div className="bg-surface-container-high border-b border-outline-variant px-md py-sm flex justify-between items-center">
+                    <span className={`text-[10px] font-bold px-xs py-[2px] rounded border ${badgeClass}`}>{r.cohort_id}</span>
+                    <div className="flex gap-xs">
+                      {r.eligibility_check_required && <span className="text-[9px] font-bold px-xs py-[1px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded">ELIGIBILITY</span>}
+                      {r.location_token_required && <span className="text-[9px] font-bold px-xs py-[1px] bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded">LOCATION</span>}
+                      <span className="text-[9px] font-bold px-xs py-[1px] bg-outline/20 text-outline border border-outline/20 rounded uppercase">{r.cadence_tier}</span>
+                    </div>
+                  </div>
+                  <div className="p-md space-y-sm">
+                    <p className="font-bold text-on-surface text-[13px] leading-snug">{r.notification_title_with_name}</p>
+                    <p className="text-on-surface-variant text-[12px] leading-relaxed">{r.notification_body_generic}</p>
+                    {r.notification_body_templated && r.notification_body_templated !== r.notification_body_generic && (
+                      <div className="bg-primary/5 border border-primary/20 rounded p-sm">
+                        <p className="text-[10px] font-bold text-primary uppercase mb-xs">Templated Variant</p>
+                        <p className="text-on-surface text-[12px]">{r.notification_body_templated}</p>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center pt-xs border-t border-outline-variant/30">
+                      <span className="text-[11px] font-bold px-sm py-xs bg-primary/10 text-primary rounded">{r.cta_label}</span>
+                      {r.title_no_name_fallback && <span className="text-[10px] text-outline italic">Fallback: {r.title_no_name_fallback}</span>}
+                    </div>
+                    {r.reasoning_note && <p className="text-[10px] text-outline italic">{r.reasoning_note}</p>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

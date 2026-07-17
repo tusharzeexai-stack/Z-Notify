@@ -61,7 +61,7 @@ def generate_recommendations(
     populate_user_from_csv(user, req.user_id)
     db.commit()
         
-    count = generate_user_notifications(user_id=req.user_id, db=db, creator_id=current_user.id, gemini_api_key=req.gemini_api_key, scores=req.scores)
+    count = generate_user_notifications(user_id=req.user_id, db=db, creator_id=current_user.id, gemini_api_key=req.gemini_api_key, scores=req.scores, user_data=req.user_data)
     
     # Audit log
     audit = AuditLog(
@@ -105,7 +105,7 @@ def regenerate_recommendations(
     populate_user_from_csv(user, req.user_id)
     db.commit()
         
-    count = generate_user_notifications(user_id=req.user_id, db=db, creator_id=current_user.id, scores=req.scores)
+    count = generate_user_notifications(user_id=req.user_id, db=db, creator_id=current_user.id, scores=req.scores, user_data=req.user_data)
     
     audit = AuditLog(
         action="NOTIFICATION_REGENERATE",
@@ -188,7 +188,19 @@ def get_saved_generations(
             age=user.age,
             status=agg_status,
             notifications_count=len(notifs),
-            notifications=[NotificationResponse.model_validate(n) for n in notifs]
+            notifications=[NotificationResponse.model_validate(n) for n in notifs],
+            gender=user.gender,
+            state=user.state,
+            district=user.district,
+            pincode=user.pincode,
+            education=user.education,
+            occupation=user.occupation,
+            income=user.income,
+            marital_status=user.marital_status,
+            house_ownership=user.house_ownership,
+            caste_category=user.caste_category,
+            disability_status=user.disability_status,
+            mobile=user.mobile
         ))
     return results
 

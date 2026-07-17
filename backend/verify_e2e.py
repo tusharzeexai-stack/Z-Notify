@@ -1,7 +1,7 @@
 import requests
 import sys
 
-API_BASE = "http://127.0.0.1:8001/api"
+API_BASE = "http://127.0.0.1:8000/api"
 
 def main():
     print("--- STARTING E2E BACKEND INTEGRATION TEST ---")

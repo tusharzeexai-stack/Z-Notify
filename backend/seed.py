@@ -314,124 +314,80 @@ def main():
         db.add_all(citizens_list)
         db.flush()
 
-    # 5. Generate 200 welfare schemes
-    print("Generating 200 welfare schemes...")
-    scheme_sectors = ["Agriculture", "Education", "Healthcare", "Women Welfare", "Housing", "Social Security"]
-    scheme_templates = [
-        {"title": "Kisan Credit Support Scheme", "sector": "Agriculture", "desc": "Provides short term credit limit for purchase of seeds, fertilizers, and pesticide tools.", "agency": "Ministry of Agriculture"},
-        {"title": "Ayushman Bharat Arogya Card", "sector": "Healthcare", "desc": "Free health coverage up to INR 5,000,000 per family per year for secondary and tertiary care hospitalization.", "agency": "National Health Authority"},
-        {"title": "National Graduate Fellowship Program", "sector": "Education", "desc": "Direct stipend transfer to underprivileged students pursuing post-graduate research degrees.", "agency": "Department of Higher Education"},
-        {"title": "Pradhan Mantri Awas Griha Sahayata", "sector": "Housing", "desc": "Financial subsidy of up to INR 1.5 Lakhs for construction of pucca houses in rural areas.", "agency": "Ministry of Rural Development"},
-        {"title": "Mahila Udyami Loan Subvention", "sector": "Women Welfare", "desc": "Zero interest loans and micro-credit facility for women self-help groups starting local businesses.", "agency": "Ministry of Women and Child Development"},
-        {"title": "Divyangjan Assistive Aid Program", "sector": "Social Security", "desc": "Provides free motorized wheel chairs, hearing implants, and visual aid kits to disabled citizens.", "agency": "Department of Empowerment of Persons with Disabilities"}
+    # 5. Load welfare schemes from CSV
+    print("Generating welfare schemes from CSV...")
+    csv_scheme_path = "farmer_schemes_100.csv"
+    possible_scheme_paths = [
+        os.path.join("D:\\Z-Notify\\frontend\\public", csv_scheme_path),
+        os.path.join("d:\\Z-Notify\\frontend\\public", csv_scheme_path),
+        os.path.join("..", "frontend", "public", csv_scheme_path),
+        os.path.join("frontend", "public", csv_scheme_path),
+        csv_scheme_path
     ]
-    
-    for i in range(200):
-        tpl = random.choice(scheme_templates)
-        title = f"{tpl['title']} (Batch-{i+1})"
-        desc = f"{tpl['desc']} This is program version {i+1} under active review."
-        
-        # Construct eligibility criteria
-        criteria = {
-            "state": random.choice(["Any", "Maharashtra", "Karnataka", "Uttar Pradesh", "Delhi"]),
-            "district": "Any",
-            "income_max": float(random.choice([150000, 300000, 500000, 800000])),
-            "age_min": random.choice([18, 21, 0]),
-            "age_max": random.choice([45, 60, 100]),
-            "occupation": random.choice(["Any", "Farmer", "Student", "Unemployed"]),
-            "gender": "Any" if tpl["sector"] != "Women Welfare" else "Female",
-            "caste_category": "Any",
-            "disability_status": "Any" if tpl["sector"] != "Social Security" else "Locomotor"
-        }
-        
-        scheme_obj = Scheme(
-            title=title,
-            description=desc,
-            agency=tpl["agency"],
-            benefit_details=f"Provides financial cover, training resources, and certificate rewards value up to INR {random.randint(10000, 200000)}.",
-            eligibility_criteria=criteria
-        )
-        db.add(scheme_obj)
+    selected_scheme_path = None
+    for path in possible_scheme_paths:
+        if os.path.exists(path):
+            selected_scheme_path = path
+            break
 
-    # 6. Generate 200 jobs
-    print("Generating 200 government job postings...")
-    job_roles = ["Technical Clerk", "Data Entry Operator", "Junior Research Assistant", "Forest Ranger", "Sub-Inspector Aide", "Aanganwadi Supervisor", "Post Office Clerk", "Assistant Section Officer"]
-    departments = ["Department of Posts", "Ministry of Railways", "Staff Selection Commission", "Department of Revenue", "Forestry Division", "Health Services Board"]
-    
-    for i in range(200):
-        role = random.choice(job_roles)
-        dept = random.choice(departments)
-        title = f"{role} (Code-{i+1000})"
-        desc = f"Applications are invited for the post of {role} under {dept}. High security clearance, documentation, and medical checks mandatory."
-        
-        criteria = {
-            "state": "Any",
-            "district": "Any",
-            "income_max": 99999999.0, # Job is not limited by income max, usually
-            "age_min": 18,
-            "age_max": random.choice([28, 35, 40]),
-            "occupation": "Any",
-            "gender": "Any",
-            "education": random.choice(["Secondary", "Higher Secondary", "Graduate"]),
-            "caste_category": "Any",
-            "disability_status": "None"
-        }
-        
-        job_obj = Job(
-            title=title,
-            description=desc,
-            department=dept,
-            salary=f"INR {random.randint(25000, 75000)} per month (Grade Pay level 4)",
-            location=random.choice(["Any", "Mumbai", "Bengaluru", "Noida", "Chennai"]),
-            eligibility_criteria=criteria
-        )
-        db.add(job_obj)
+    if selected_scheme_path:
+        with open(selected_scheme_path, mode="r", encoding="utf-8-sig") as f:
+            reader = csv.DictReader(f)
+            for r in reader:
+                title = r.get("Scheme Name", "").strip()
+                category = r.get("Category", "").strip()
+                who_can_apply = r.get("Who Can Apply", "").strip()
+                land_req = r.get("Land Requirement", "").strip()
+                other_conditions = r.get("Income / Other Conditions", "").strip()
+                benefit = r.get("Key Benefit", "").strip()
+                portal = r.get("Official Portal", "").strip()
 
-    # 7. Generate 100 services
-    print("Generating 100 services...")
-    service_titles = ["Pesticide Subsidy Passbook", "Digital Land Records Registry", "Fertilizer Procurement Token", "Student Bus Pass Portal", "Maternal Care Health Token", "Disability Bus Pass Issue"]
-    for i in range(100):
-        t = random.choice(service_titles)
-        service_obj = Service(
-            title=f"{t} Service-ID {i+1}",
-            description=f"Citizen service portal to process applications for {t}. Full eligibility score check required for fast tracking.",
-            department=random.choice(departments),
-            eligibility_criteria={
-                "state": "Any",
-                "district": "Any",
-                "income_max": float(random.choice([200000, 400000, 1000000])),
-                "age_min": 18,
-                "age_max": 80,
-                "occupation": "Any"
-            }
-        )
-        db.add(service_obj)
+                if not title:
+                    continue
 
-    # 8. Generate 100 medical facilities
-    print("Generating 100 medical facilities...")
-    facility_names = ["Apollo Clinic", "Ayush Wellness Center", "Fortis Med-Center", "Sub-Divisional Civil Hospital", "PHC Primary Health Unit", "Max Care Center"]
-    facility_types = ["Primary Health Center", "Community Health Center", "General Hospital", "Super Specialty Hospital"]
-    
-    for i in range(100):
-        n = random.choice(facility_names)
-        t = random.choice(facility_types)
-        state = random.choice(list(STATES_DISTRICTS.keys()))
-        dist = random.choice(STATES_DISTRICTS[state])
-        
-        medical_obj = MedicalFacility(
-            name=f"{n} ({dist}-{i+1})",
-            type=t,
-            location=f"{random.randint(10, 99)} MG Road, {dist}, {state}",
-            services_offered={
-                "state": state,
-                "district": dist,
-                "income_max": 99999999.0, # Free or subsidised clinic based on demographic
-                "age_min": 0,
-                "age_max": 120,
-                "services": ["Outpatient (OPD)", "Immunization", "Maternity ward", "Emergency care"]
-            }
-        )
-        db.add(medical_obj)
+                desc = f"Category: {category}. Who Can Apply: {who_can_apply}. Land Requirement: {land_req}."
+                if other_conditions:
+                    desc += f" Other Conditions: {other_conditions}."
+
+                state = "Any"
+                for s in ["Andhra Pradesh", "Haryana", "Jharkhand", "Madhya Pradesh", "Odisha", "Chhattisgarh", "Karnataka", "Punjab", "Maharashtra"]:
+                    if s.lower() in title.lower() or s.lower() in who_can_apply.lower() or s.lower() in other_conditions.lower() or s.lower() in category.lower():
+                        state = s
+                        break
+
+                gender = "Any"
+                if "women" in category.lower() or "women" in who_can_apply.lower():
+                    gender = "Female"
+
+                disability_status = "Any"
+                if "disability" in category.lower() or "differently-abled" in who_can_apply.lower() or "disabled" in who_can_apply.lower():
+                    disability_status = "Locomotor"
+
+                criteria = {
+                    "state": state,
+                    "district": "Any",
+                    "income_max": 99999999.0,
+                    "age_min": 0,
+                    "age_max": 120,
+                    "occupation": "Farmer",
+                    "gender": gender,
+                    "caste_category": "Any",
+                    "disability_status": disability_status
+                }
+
+                scheme_obj = Scheme(
+                    title=title,
+                    description=desc,
+                    agency=portal or "Department of Agriculture",
+                    benefit_details=benefit,
+                    eligibility_criteria=criteria
+                )
+                db.add(scheme_obj)
+    else:
+        print("WARNING: farmer_schemes_100.csv not found. No schemes seeded.")
+
+    # 6. Generate 200 jobs (Disabled as per request)
+    print("Skipping jobs, services, and medical facilities generation...")
 
     db.commit()
     print("Database seeding completed successfully!")

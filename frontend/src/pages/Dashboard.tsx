@@ -181,26 +181,6 @@ export const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Box 3: Eligibility Matrix */}
-          {isAdmin && (
-            <div className="bg-surface-container border border-outline-variant p-lg rounded-xl flex flex-col justify-between h-48 card-hover transition-all">
-              <div>
-                <h3 className="font-label-md text-label-md text-on-surface font-bold uppercase flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-secondary">tune</span>
-                  Eligibility Scoring Matrix
-                </h3>
-                <p className="font-body-sm text-on-surface-variant mt-sm">
-                  Adjust matching weights for demographics factors such as State, District, Income, and Age.
-                </p>
-              </div>
-              <button
-                onClick={() => changeView('eligibility-rules')}
-                className="text-primary font-label-sm flex items-center gap-xs hover:underline mt-lg w-fit cursor-pointer"
-              >
-                Configure Weights <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </button>
-            </div>
-          )}
 
           {/* Box 4: Dispatch Logs */}
           {isAdmin && (
@@ -223,26 +203,31 @@ export const Dashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Box 5: Buckets Classifier */}
-          {isAdmin && (
-            <div className="bg-surface-container border border-outline-variant p-lg rounded-xl flex flex-col justify-between h-48 card-hover transition-all">
+          {/* Box 5: Cohort Map */}
+          {currentUser?.role === 'super-admin' && (
+            <div className="bg-surface-container border border-outline-variant p-lg rounded-xl flex flex-col justify-between h-48 card-hover transition-all relative overflow-hidden">
+              <div
+                className="absolute inset-0 opacity-5 pointer-events-none"
+                style={{ background: 'radial-gradient(circle at 80% 20%, var(--md-sys-color-primary) 0%, transparent 60%)' }}
+              />
               <div>
                 <h3 className="font-label-md text-label-md text-on-surface font-bold uppercase flex items-center gap-xs">
-                  <span className="material-symbols-outlined text-primary-fixed-dim">category</span>
-                  Classification Buckets
+                  <span className="material-symbols-outlined text-primary">hub</span>
+                  Cohort Map
                 </h3>
                 <p className="font-body-sm text-on-surface-variant mt-sm">
-                  Review matches categorized automatically under domain classifiers (Healthcare, Housing, etc).
+                  View all <strong className="text-primary">66 HPNS persona segments</strong> — base cohorts (B×D×LC) and overlay flags — with citizen counts.
                 </p>
               </div>
               <button
-                onClick={() => changeView('buckets')}
+                onClick={() => changeView('cohorts')}
                 className="text-primary font-label-sm flex items-center gap-xs hover:underline mt-lg w-fit cursor-pointer"
               >
-                View Buckets <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                Open Cohort Map <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
               </button>
             </div>
           )}
+
 
           {/* Citizen Box */}
           {!isAdmin && (

@@ -203,6 +203,18 @@ class SavedGenerationSummary(BaseModel):
     status: str
     notifications_count: int
     notifications: List[NotificationResponse]
+    gender: Optional[str] = None
+    state: Optional[str] = None
+    district: Optional[str] = None
+    pincode: Optional[str] = None
+    education: Optional[str] = None
+    occupation: Optional[str] = None
+    income: Optional[float] = None
+    marital_status: Optional[str] = None
+    house_ownership: Optional[str] = None
+    caste_category: Optional[str] = None
+    disability_status: Optional[str] = None
+    mobile: Optional[str] = None
 
 # Reviews
 class ReviewAction(BaseModel):
