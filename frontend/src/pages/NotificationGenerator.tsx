@@ -1215,15 +1215,15 @@ function CohortWiseGenerator({
       if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
       const data = await res.json();
       const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      setCohortGenLog(prev => [...prev, 'Response received. Parsing JSON...']);
+      setCohortGenLog((prev: string[]) => [...prev, 'Response received. Parsing JSON...']);
       // Strip markdown fences if present
       const cleaned = raw.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
       const parsed = JSON.parse(cleaned);
       setCohortGenResults(Array.isArray(parsed) ? parsed : [parsed]);
-      setCohortGenLog(prev => [...prev, `✓ ${Array.isArray(parsed) ? parsed.length : 1} notification template(s) generated.`]);
+      setCohortGenLog((prev: string[]) => [...prev, `✓ ${Array.isArray(parsed) ? parsed.length : 1} notification template(s) generated.`]);
     } catch (e: any) {
       setCohortGenError(e.message || 'Failed to generate cohort notifications.');
-      setCohortGenLog(prev => [...prev, `✗ Error: ${e.message}`]);
+      setCohortGenLog((prev: string[]) => [...prev, `✗ Error: ${e.message}`]);
     } finally {
       setCohortGenLoading(false);
     }
@@ -1314,7 +1314,7 @@ function CohortWiseGenerator({
 
         {cohortGenLog.length > 0 && (
           <div className="bg-surface-container-low border border-outline-variant rounded-lg p-sm font-mono-code text-[11px] text-tertiary space-y-xs max-h-24 overflow-y-auto">
-            {cohortGenLog.map((l,i) => <div key={i}>{l}</div>)}
+            {cohortGenLog.map((l: string, i: number) => <div key={i}>{l}</div>)}
           </div>
         )}
       </div>

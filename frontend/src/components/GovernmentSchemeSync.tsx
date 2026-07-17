@@ -31,7 +31,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 export const GovernmentSchemeSync: React.FC = () => {
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [logs, setLogs] = useState<SyncLog[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('agriculture-rural-environment');
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
@@ -60,7 +60,7 @@ export const GovernmentSchemeSync: React.FC = () => {
     } catch (err) {
       console.error('Error loading sync telemetry:', err);
     } finally {
-      setLoading(false);
+      //
     }
   };
 

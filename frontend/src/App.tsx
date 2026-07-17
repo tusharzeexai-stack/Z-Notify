@@ -27,7 +27,7 @@ import { EligibilityRules } from './pages/EligibilityRules';
 import { Buckets } from './pages/Buckets';
 import { DeliveryCenter } from './pages/DeliveryCenter';
 import { Users } from './pages/Users';
-import { Schemes } from './pages/Schemes';
+
 import { Jobs } from './pages/Jobs';
 import { Services } from './pages/Services';
 import { MedicalFacilities } from './pages/MedicalFacilities';

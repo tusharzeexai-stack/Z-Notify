@@ -4,60 +4,8 @@ import { getScoringRuns, deleteScoringRun } from '../utils/scoringStorage';
 import { loadDistrictMap, resolveField } from '../utils/mappings';
 
 // ─── 54-Cohort Taxonomy (Cohort_Definitions_54.csv) ───────────────────
-// B2 retired — not in dataset. Active behaviors: B1/B3/B4/B5 (4×3×4=48 base +6 overlays=54)
-const BEHAVIOR_LABELS: Record<string,string> = {
-  B1: 'Content Reader', B3: 'Job Hunter',
-  B4: 'Scheme Seeker', B5: 'Service Explorer'
-};
-const DOMAIN_LABELS: Record<string,string> = {
-  D1: 'Health Need', D2: 'Skills Need', D3: 'Agriculture Need'
-};
-const CONTEXT_LABELS: Record<string,string> = {
-  LC1: 'Farm & Land-Based', LC2: 'Home & Family-Based',
-  LC3: 'Employed & Working', LC4: 'Youth & Job-Seeking'
-};
-const OVERLAY_LABELS: Record<string,string> = {
-  X1: 'New / Dormant Signup', X2: 'Multi-Domain Achiever',
-  X3: 'Incomplete-Profile User', X4: 'Economically Vulnerable',
-  X5: 'Minority-Language User', X6: 'Urban-Context User'
-};
-const BEHAVIOR_COLORS: Record<string,string> = {
-  B1: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  B3: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  B4: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-  B5: 'bg-pink-500/15 text-pink-400 border-pink-500/30'
-};
-const DOMAIN_COLORS: Record<string,string> = {
-  D1: 'text-red-400', D2: 'text-sky-400', D3: 'text-green-400'
-};
-const OVERLAY_COLORS: Record<string,string> = {
-  X1: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
-  X2: 'bg-violet-500/20 text-violet-300 border-violet-500/30',
-  X3: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  X4: 'bg-red-500/20 text-red-300 border-red-500/30',
-  X5: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-  X6: 'bg-teal-500/20 text-teal-300 border-teal-500/30'
-};
 
-// 48 base cohorts: B1/B3/B4/B5 × D1-D3 × LC1-LC4 (B2 retired)
-const BASE_COHORTS: {id:string; label:string; b:string; d:string; lc:string}[] = [];
-for (const b of ['B1','B3','B4','B5']) {
-  for (const d of ['D1','D2','D3']) {
-    for (const lc of ['LC1','LC2','LC3','LC4']) {
-      BASE_COHORTS.push({
-        id: `${b}-${d}-${lc}`,
-        label: `${CONTEXT_LABELS[lc]} ${BEHAVIOR_LABELS[b]} — ${DOMAIN_LABELS[d]}`,
-        b, d, lc
-      });
-    }
-  }
-}
-// 6 Overlay cohorts
-const OVERLAY_COHORTS: {id:string; label:string}[] = Object.entries(OVERLAY_LABELS).map(([k,v]) => ({id: k, label: v}));
-const ALL_COHORTS = [
-  ...BASE_COHORTS.map(c => ({id: c.id, label: c.label, type: 'base' as const, b: c.b, d: c.d, lc: c.lc})),
-  ...OVERLAY_COHORTS.map(c => ({id: c.id, label: c.label, type: 'overlay' as const, b:'', d:'', lc:''}))
-];
+
 
 export const Users: React.FC = () => {
   const { fetchUsers, fetchSavedGenerations, sendToReview, deleteSavedGenerations } = useDashboard();
@@ -80,11 +28,6 @@ export const Users: React.FC = () => {
   const [viewToggle, setViewToggle] = useState<'all' | 'synced'>('all');
   const [occupationFilter, setOccupationFilter] = useState<string>('');
 
-  // Cohort Section State
-  const [cohortSearch, setCohortSearch] = useState<string>('');
-  const [selectedCohort, setSelectedCohort] = useState<string | null>(null);
-  const [cohortTypeFilter, setCohortTypeFilter] = useState<'all'|'base'|'overlay'>('all');
-  const [cohortBehaviorFilter, setCohortBehaviorFilter] = useState<string>('');
 
   const uniqueOccupations = useMemo(() => {
     if (!selectedRun || !selectedRun.data) return [];
