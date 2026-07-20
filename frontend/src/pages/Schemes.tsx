@@ -13,6 +13,7 @@ export const Schemes: React.FC = () => {
   const [incomeMax, setIncomeMax] = useState(300000);
   const [gender, setGender] = useState('Any');
   const [msg, setMsg] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchInventories();
@@ -79,6 +80,19 @@ export const Schemes: React.FC = () => {
           {isAdding ? 'View List' : 'Add Scheme'}
         </button>
       </div>
+
+      {!isAdding && (
+        <div className="flex items-center gap-sm bg-surface-container border border-outline-variant p-sm rounded-lg max-w-md focus-within:border-primary transition-colors">
+          <span className="material-symbols-outlined text-outline">search</span>
+          <input
+            type="text"
+            placeholder="Search schemes by title, agency, or description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none outline-none text-on-surface w-full font-body-sm placeholder:text-outline"
+          />
+        </div>
+      )}
 
       {msg && (
         <div className="bg-primary/20 border border-primary p-md rounded text-on-surface font-bold text-center">
@@ -166,7 +180,11 @@ export const Schemes: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
-          {schemes.map((s) => (
+          {schemes.filter(s => 
+            (s.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+            (s.description || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+            (s.agency || '').toLowerCase().includes(searchQuery.toLowerCase())
+          ).map((s) => (
             <div 
               key={s.id} 
               onClick={() => setSelectedScheme(s)}

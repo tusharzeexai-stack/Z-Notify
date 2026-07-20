@@ -67,7 +67,7 @@ export const GovernmentSchemes: React.FC = () => {
 
   const fetchCategoryCounts = async () => {
     try {
-      const res = await fetch(`${API_BASE}/schemes/category-counts`);
+      const res = await fetch(`${API_BASE}/myscheme/schemes/category-counts`);
       if (res.ok) {
         const counts = await res.json();
         setCategoryCounts((prev) => ({ ...prev, ...counts }));
@@ -80,7 +80,7 @@ export const GovernmentSchemes: React.FC = () => {
   const fetchSchemes = async () => {
     setLoading(true);
     try {
-      let url = `${API_BASE}/schemes?sort_by=${sortBy}&size=5000`;
+      let url = `${API_BASE}/myscheme/schemes?sort_by=${sortBy}&size=5000`;
       if (activeCategoryTab !== 'all') {
         url += `&category=${activeCategoryTab}`;
       }

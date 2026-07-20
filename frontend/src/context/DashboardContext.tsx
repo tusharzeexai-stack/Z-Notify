@@ -423,8 +423,14 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const resV = await fetch(`${API_BASE}/services`, { headers: getHeaders() });
       const resF = await fetch(`${API_BASE}/medical-facilities`, { headers: getHeaders() });
 
-      if (resS.ok) setSchemes(await resS.json());
-      if (resJ.ok) setJobs(await resJ.json());
+      if (resS.ok) {
+        const sData = await resS.json();
+        setSchemes(Array.isArray(sData) ? sData : (sData.items || []));
+      }
+      if (resJ.ok) {
+        const jData = await resJ.json();
+        setJobs(Array.isArray(jData) ? jData : (jData.items || []));
+      }
       if (resV.ok) setServices(await resV.json());
       if (resF.ok) setMedicalFacilities(await resF.json());
     } catch (err) {

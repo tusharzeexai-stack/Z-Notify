@@ -14,7 +14,7 @@ router = APIRouter(tags=["Government Schemes Sync"])
 # PUBLIC API ENDPOINTS
 # ==========================================
 
-@router.get("/schemes", response_model=SchemeListResponse)
+@router.get("/myscheme/schemes", response_model=SchemeListResponse)
 def get_schemes(
     keyword: Optional[str] = Query(None, description="Search keyword across title, description, benefits, tags"),
     category: Optional[str] = Query(None, description="Category slug filter"),
@@ -61,8 +61,8 @@ def get_schemes(
         items=response_items
     )
 
-@router.get("/scheme-stats/counts")
-@router.get("/schemes/category-counts")
+@router.get("/myscheme/scheme-stats/counts")
+@router.get("/myscheme/schemes/category-counts")
 def get_category_counts(db: Session = Depends(get_db)):
     """
     Returns exact scheme count per category slug and total count.
@@ -87,7 +87,7 @@ def get_category_counts(db: Session = Depends(get_db)):
             'all': 2288
         }
 
-@router.get("/categories", response_model=List[CategoryResponse])
+@router.get("/myscheme/categories", response_model=List[CategoryResponse])
 def get_categories(db: Session = Depends(get_db)):
     """
     Retrieve all synchronized government scheme categories.
@@ -97,7 +97,7 @@ def get_categories(db: Session = Depends(get_db)):
     return categories
 
 
-@router.get("/schemes/category/{category}", response_model=SchemeListResponse)
+@router.get("/myscheme/schemes/category/{category}", response_model=SchemeListResponse)
 def get_schemes_by_category(
     category: str,
     page: int = Query(1, ge=1),
@@ -134,7 +134,7 @@ def get_schemes_by_category(
         items=response_items
     )
 
-@router.get("/schemes/{scheme_id}", response_model=SchemeResponse)
+@router.get("/myscheme/schemes/{scheme_id}", response_model=SchemeResponse)
 def get_scheme_by_id(scheme_id: str, db: Session = Depends(get_db)):
     """
     Retrieve detailed scheme profile by ID or slug.
