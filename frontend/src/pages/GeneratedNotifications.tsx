@@ -339,7 +339,7 @@ export const GeneratedNotifications: React.FC = () => {
       {/* View Notifications Modal */}
       {viewNotifsModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim/60 backdrop-blur-sm p-md">
-          <div className="bg-surface-container w-full max-w-4xl min-w-[300px] rounded-xl border border-outline-variant shadow-xl flex flex-col max-h-[85vh]">
+          <div className="bg-surface-container w-full max-w-5xl min-w-[300px] rounded-xl border border-outline-variant shadow-xl flex flex-col" style={{maxHeight: '90vh'}}>
             <div className="p-md border-b border-outline-variant flex justify-between items-center bg-surface-container-high">
               <h2 className="font-headline-sm text-on-surface font-bold flex items-center gap-xs">
                 <span className="material-symbols-outlined text-primary">preview</span>
@@ -354,9 +354,9 @@ export const GeneratedNotifications: React.FC = () => {
             {(() => {
               const scoringData = getUserScoringData(viewNotifsModal.user_id);
               return (
-                <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-md p-md max-h-[68vh]">
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0 overflow-hidden" style={{minHeight: 0}}>
                   {/* Left Column: Notifications (width: 7/12) */}
-                  <div className="lg:col-span-7 overflow-y-auto space-y-md custom-scrollbar pr-xs">
+                  <div className="lg:col-span-7 overflow-y-scroll space-y-md p-md" style={{scrollBehavior:'smooth', maxHeight:'100%'}}>
                     {(viewNotifsModal.notifications || []).map((notif: any, idx: number) => {
                       let parsed: any = {};
                       try {
@@ -413,7 +413,7 @@ export const GeneratedNotifications: React.FC = () => {
                   </div>
 
                   {/* Right Column: User Scoring Sidebar (width: 5/12) */}
-                  <div className="lg:col-span-5 bg-surface-container-high/60 border border-outline-variant rounded-xl p-lg space-y-lg overflow-y-auto custom-scrollbar">
+                  <div className="lg:col-span-5 bg-surface-container-high/60 border-l border-outline-variant p-lg space-y-lg overflow-y-scroll" style={{scrollBehavior:'smooth', maxHeight:'100%'}}>
                     {/* Demographic Profile */}
                     <div>
                       <h3 className="font-headline-sm text-headline-sm text-primary font-bold mb-md flex items-center gap-xs">
