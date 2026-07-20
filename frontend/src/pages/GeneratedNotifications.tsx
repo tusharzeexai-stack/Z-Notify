@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../context/DashboardContext';
 import { getScoringRuns } from '../utils/scoringStorage';
-import { resolveField } from '../utils/mappings';
+
 
 export const GeneratedNotifications: React.FC = () => {
   const { fetchSavedGenerations, sendToReview, deleteSavedGenerations } = useDashboard();
@@ -93,7 +93,7 @@ export const GeneratedNotifications: React.FC = () => {
   };
 
   // Group cohorts by cohort_id
-  const groupedCohorts = cohortGens.reduce((acc, curr) => {
+  const groupedCohorts: Record<string, any[]> = cohortGens.reduce((acc: Record<string, any[]>, curr: any) => {
     if (!acc[curr.cohort_id]) acc[curr.cohort_id] = [];
     acc[curr.cohort_id].push(curr);
     return acc;
