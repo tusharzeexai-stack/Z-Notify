@@ -418,15 +418,24 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const fetchInventories = async () => {
     if (!token) return;
     try {
-      const resS = await fetch(`${API_BASE}/schemes`, { headers: getHeaders() });
+      const resS_local = await fetch(`${API_BASE}/schemes`, { headers: getHeaders() });
+      const resS_sync = await fetch(`${API_BASE}/myscheme/schemes?size=5000`, { headers: getHeaders() });
+      
       const resJ = await fetch(`${API_BASE}/jobs`, { headers: getHeaders() });
       const resV = await fetch(`${API_BASE}/services`, { headers: getHeaders() });
       const resF = await fetch(`${API_BASE}/medical-facilities`, { headers: getHeaders() });
 
-      if (resS.ok) {
-        const sData = await resS.json();
-        setSchemes(Array.isArray(sData) ? sData : (sData.items || []));
+      let mergedSchemes: any[] = [];
+      if (resS_local.ok) {
+        const sData = await resS_local.json();
+        mergedSchemes = mergedSchemes.concat(Array.isArray(sData) ? sData : (sData.items || []));
       }
+      if (resS_sync.ok) {
+        const sDataSync = await resS_sync.json();
+        mergedSchemes = mergedSchemes.concat(Array.isArray(sDataSync) ? sDataSync : (sDataSync.items || []));
+      }
+      setSchemes(mergedSchemes);
+
       if (resJ.ok) {
         const jData = await resJ.json();
         setJobs(Array.isArray(jData) ? jData : (jData.items || []));

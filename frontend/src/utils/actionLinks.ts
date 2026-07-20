@@ -91,15 +91,15 @@ export const getActionLinks = (
   // ── SCHEMES ──────────────────────────────────────────────────────────────
   if (cat.includes('SCHEME') || cat.includes('BENEFIT') || cat.includes('WELFARE') || title.includes('scheme') || msg.includes('scheme') || msg.includes('yojana')) {
     const schemeKws = [...kws, 'scheme', 'yojana', 'benefit'];
-    const matched = matchItems(schemes, ['scheme_name','scheme_category','description'], schemeKws, dist, state, 1);
+    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description'], schemeKws, dist, state, 1);
     return {
       type: 'scheme', label: 'Matching Schemes', icon: 'policy',
       items: matched.map(s => ({
-        title: s.scheme_name || 'Government Scheme',
-        sub: s.scheme_category || '',
+        title: s.scheme_name || s.title || 'Government Scheme',
+        sub: s.scheme_category || s.agency || '',
         badge: s.scheme_type || 'SCHEME',
-        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount ? `Benefit: ${s.benefit_amount}` : ''].filter(Boolean),
-        url: s.application_url || s.portal_link,
+        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details ? `Benefit: ${s.benefit_amount || s.benefit_details}` : ''].filter(Boolean),
+        url: s.application_url || s.official_url || s.portal_link || s.source_url,
         btnLabel: 'Apply for Scheme'
       })),
       fallbacks: [
@@ -113,16 +113,16 @@ export const getActionLinks = (
   // ── AGRICULTURE ──────────────────────────────────────────────────────────
   if (cat.includes('AGRI') || cat.includes('FARM') || cat.includes('KISAN') || title.includes('farm') || msg.includes('farm') || msg.includes('kisan')) {
     const agriKws = [...kws, 'kisan', 'farmer', 'agriculture', 'krishi', 'crop', 'maan-dhan'];
-    const matched = matchItems(schemes, ['scheme_name','scheme_category','description'], agriKws, dist, state, 1);
+    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description','tags'], agriKws, dist, state, 1);
     return {
-      type: 'agri', label: 'Agriculture Schemes', icon: 'agriculture',
+      type: 'scheme', label: 'Farmer Scheme Update', icon: 'agriculture',
       items: matched.map(s => ({
-        title: s.scheme_name || 'Agriculture Scheme',
-        sub: s.scheme_category || '',
-        badge: s.scheme_type || 'SCHEME',
-        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount ? `Benefit: ${s.benefit_amount}` : ''].filter(Boolean),
-        url: s.application_url || s.portal_link,
-        btnLabel: 'Apply for Scheme'
+        title: s.scheme_name || s.title || 'Agriculture Scheme',
+        sub: s.scheme_category || s.agency || '',
+        badge: s.scheme_type || 'AGRI SCHEME',
+        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details ? `Benefit: ${s.benefit_amount || s.benefit_details}` : ''].filter(Boolean),
+        url: s.application_url || s.official_url || s.portal_link || s.source_url,
+        btnLabel: 'Claim Farmer Benefit'
       })),
       fallbacks: [
         { label: `PM-KISAN scheme for farmers in ${loc}`, url: 'https://pmkisan.gov.in/', color: 'bg-green-600 text-white' },
