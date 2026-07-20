@@ -100,11 +100,14 @@ export const GeneratedNotifications: React.FC = () => {
     const dist = (scoringData?.district || '').toLowerCase();
     const state = scoringData?.state || '';
     const loc = [scoringData?.district, state.split('/')[0]?.trim()].filter(Boolean).join(', ');
-    const kws = occ.toLowerCase().split(/[\s,]+/).filter(Boolean);
-
+    let kws = occ.toLowerCase().split(/[\s,]+/).filter(Boolean);
+    if (kws.length === 0 || occ.toLowerCase().includes('not applicable')) {
+      // Fallback to extracting keywords from title
+      kws = title.split(/[\s,]+/).filter(w => !['new', 'job', 'alert', 'alert!', 'update', 'opportunities'].includes(w));
+    }
     // ── EMPLOYMENT ───────────────────────────────────────────────────────────
     if (cat.includes('EMPLOY') || cat.includes('JOB') || title.includes('job') || msg.includes('job')) {
-      const matched = matchItems(jobs || [], ['job_role_position','job_category','job_subcategory','occupation'], kws, dist, state);
+      const matched = matchItems(jobs || [], ['job_role_position','job_category','job_subcategory','occupation'], kws, dist, state, 1);
       return {
         type: 'job', label: 'Matched Jobs', icon: 'work',
         items: matched.map(j => ({
