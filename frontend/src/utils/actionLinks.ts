@@ -53,7 +53,11 @@ export const kwScore = (item: any, fields: string[], keywords: string[], title =
 };
 
 export const matchItems = (list: any[], kwFields: string[], kws: string[], dist: string, state: string, n = 3, title = '', msg = '') =>
-  (Array.isArray(list) ? list : []).map(i => ({ i, s: kwScore(i, kwFields, kws, title, msg) + locScore(i, dist, state) }))
+  (Array.isArray(list) ? list : []).map(i => {
+    const kScore = kwScore(i, kwFields, kws, title, msg);
+    const lScore = kScore > 0 ? locScore(i, dist, state) : 0;
+    return { i, s: kScore + lScore };
+  })
     .filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map(x => x.i);
 
 export const getMySchemeUrl = (s: any) => {
@@ -162,25 +166,50 @@ export const getActionLinks = (
   kws = Array.from(new Set([...kws, ...textTokens]));
 
   // ── EMPLOYMENT ───────────────────────────────────────────────────────────
-  if (cat.includes('EMPLOY') || cat.includes('JOB') || title.includes('job') || msg.includes('job') || msg.includes('carpenter') || msg.includes('consultant')) {
-    const matched = matchItems(jobs, ['job_role_position','job_category','job_subcategory','occupation'], kws, dist, state, 1, title, msg);
+  if (cat.includes('EMPLOY') || cat.includes('JOB') || title.includes('job') || msg.includes('job') || msg.includes('carpenter') || msg.includes('consultant') || msg.includes('accountant')) {
+    let matched = matchItems(jobs, ['job_role_position','job_category','job_subcategory','occupation'], kws, dist, state, 1, title, msg);
     
-    // Extract job title and location from matched job or notification text for precise search URLs
-    const matchedJob = matched[0];
-    const jobRoleName = matchedJob?.job_role_position || matchedJob?.occupation || (msg.includes('carpenter') ? 'Carpenter' : (msg.includes('data entry') ? 'Data Entry Operator' : (occ || 'jobs')));
-    const jobLocName = matchedJob?.district || matchedJob?.city || matchedJob?.state || dist || loc || 'Thane';
+    // Extract job title from notification text or title (e.g., Accountant, Carpenter, Data Entry)
+    let extractedRole = '';
+    const fullText = (title + ' ' + msg).toLowerCase();
+    const roleMatches = ['accountant', 'carpenter', 'data entry', 'consultant', 'driver', 'nurse', 'teacher', 'engineer', 'electrician', 'plumber', 'mechanic'];
+    for (const rm of roleMatches) {
+      if (fullText.includes(rm)) {
+        extractedRole = rm.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        break;
+      }
+    }
+    if (!extractedRole) {
+      extractedRole = occ || 'Job Opportunity';
+    }
+
+    const jobRoleName = matched[0]?.job_role_position || matched[0]?.occupation || extractedRole;
+    const jobLocName = matched[0]?.district || matched[0]?.city || matched[0]?.state || dist || loc || 'Thane';
     const ncsSearchUrl = `https://www.ncs.gov.in/Pages/Search.aspx?searchText=${encodeURIComponent(jobRoleName)}&location=${encodeURIComponent(jobLocName)}`;
+
+    let items = matched.map(j => ({
+      title: j.job_role_position || 'Job Opening',
+      sub: j.name_of_company_person || '',
+      badge: j.job_type || 'VACANCY',
+      meta: [`${j.district || j.city || ''}${j.state ? ', '+j.state : ''}`, j.salary_range, j.exp_required ? `Exp: ${j.exp_required}` : ''].filter(Boolean),
+      url: j.job_url || j.official_url || (j.job_contact_email ? `mailto:${j.job_contact_email}` : ncsSearchUrl),
+      btnLabel: 'Apply Now'
+    }));
+
+    if (items.length === 0 && extractedRole) {
+      items = [{
+        title: `${jobRoleName} Position`,
+        sub: 'Verified Local Opportunity',
+        badge: 'VACANCY',
+        meta: [jobLocName].filter(Boolean),
+        url: ncsSearchUrl,
+        btnLabel: 'Apply Now'
+      }];
+    }
 
     return {
       type: 'job', label: 'Matched Jobs', icon: 'work',
-      items: matched.map(j => ({
-        title: j.job_role_position || 'Job Opening',
-        sub: j.name_of_company_person || '',
-        badge: j.job_type || 'VACANCY',
-        meta: [`${j.district || j.city || ''}${j.state ? ', '+j.state : ''}`, j.salary_range, j.exp_required ? `Exp: ${j.exp_required}` : ''].filter(Boolean),
-        url: j.job_url || j.official_url || (j.job_contact_email ? `mailto:${j.job_contact_email}` : ncsSearchUrl),
-        btnLabel: 'Apply Now'
-      })),
+      items,
       fallbacks: [
         { label: `Search "${jobRoleName} opportunities in ${jobLocName}" on Google Jobs`, url: `https://www.google.com/search?q=${encodeURIComponent(`${jobRoleName} jobs ${jobLocName}`)}&ibp=htl;jobs`, color: 'bg-[#4285F4] text-white' },
         { label: 'Search on NCS Portal (Govt. Job Board)', url: ncsSearchUrl, color: 'bg-primary/10 border border-primary/30 text-primary' },
@@ -260,7 +289,7 @@ export const getActionLinks = (
   if (cat.includes('SERVICE') || cat.includes('CIVIC') || title.includes('service') || msg.includes('service')) {
     const matched = matchItems(services, ['service_name','service_category','description'], kws, dist, state, 1);
     return {
-      type: 'service', label: 'Nearby Services', icon: 'miscellaneous_services',
+      type: 'service', label: 'Nearby Services', icon: 'build',
       items: matched.map(sv => ({
         title: sv.service_name || 'Civic Service',
         sub: sv.service_category || '',
