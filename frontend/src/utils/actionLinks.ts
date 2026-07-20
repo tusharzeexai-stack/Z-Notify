@@ -88,7 +88,7 @@ export const getActionLinks = (
   
   const cat = (notif.category || '').toUpperCase();
   const title = (parsed.title || notif.title || '').toLowerCase();
-  const msg = (parsed.message || notif.description || '').toLowerCase();
+  const msg = (parsed.message || parsed.personalized_content || parsed.description || parsed.body || notif.personalized_content || notif.description || notif.body || '').toLowerCase();
   const rawOcc = scoringData?.occupation || scoringData?.Occupation || scoringData?.job_role || '';
   const occ = rawOcc.toLowerCase().includes('not applicable') ? '' : rawOcc;
   const dist = (scoringData?.district || scoringData?.District || '').toLowerCase();
@@ -125,7 +125,7 @@ export const getActionLinks = (
 
   // ── AGRICULTURE SCHEMES (Prioritized before generic SCHEMES) ─────────────
   if (cat.includes('AGRI') || cat.includes('FARM') || cat.includes('KISAN') || title.includes('farm') || msg.includes('farm') || msg.includes('kisan') || msg.includes('pm-kisan') || msg.includes('pm-kmy')) {
-    const agriKws = [...kws, 'kisan', 'farmer', 'agriculture', 'krishi', 'crop', 'maan-dhan', 'samman', 'nidhi'];
+    const agriKws = [...kws, 'kisan', 'farmer', 'agriculture', 'krishi', 'crop', 'maan-dhan'];
     const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description','tags'], agriKws, dist, state, 1, title, msg);
     return {
       type: 'scheme', label: 'Farmer Scheme Update', icon: 'agriculture',
@@ -138,8 +138,7 @@ export const getActionLinks = (
         btnLabel: 'Claim Farmer Benefit'
       })),
       fallbacks: [
-        { label: `PM-KISAN scheme on MyScheme Portal`, url: 'https://www.myscheme.gov.in/schemes/pm-kisan', color: 'bg-green-600 text-white' },
-        { label: `Agri schemes for ${occLabel} — MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent('farmer '+occ)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
+        { label: `Agri & Farmer schemes on MyScheme Portal`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent('farmer '+occ)}`, color: 'bg-green-600 text-white' },
         { label: `Search "${occLabel} agriculture support ${locLabel}"`, url: buildGoogleUrl(`${occ} agriculture scheme ${loc}`), color: 'bg-surface border border-outline-variant text-outline' },
       ],
       moreLabel: 'Kisan Call Center: 1800-180-1551', moreUrl: 'tel:18001801551'
