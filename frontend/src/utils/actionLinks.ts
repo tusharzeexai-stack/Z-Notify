@@ -56,6 +56,25 @@ export const matchItems = (list: any[], kwFields: string[], kws: string[], dist:
   (Array.isArray(list) ? list : []).map(i => ({ i, s: kwScore(i, kwFields, kws, title, msg) + locScore(i, dist, state) }))
     .filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map(x => x.i);
 
+export const getMySchemeUrl = (s: any) => {
+  if (s.slug) return `https://www.myscheme.gov.in/schemes/${s.slug}`;
+  if (s.official_url && s.official_url.includes('myscheme.gov.in')) return s.official_url;
+  if (s.application_url && s.application_url.includes('myscheme.gov.in')) return s.application_url;
+  if (s.source_url && s.source_url.includes('myscheme.gov.in')) return s.source_url;
+  
+  const titleStr = (s.scheme_name || s.title || '').toLowerCase();
+  if (titleStr.includes('pm-kisan') || titleStr.includes('kisan samman nidhi')) return 'https://www.myscheme.gov.in/schemes/pm-kisan';
+  if (titleStr.includes('pm-kmy') || titleStr.includes('kisan maan-dhan')) return 'https://www.myscheme.gov.in/schemes/pm-kmy';
+  if (titleStr.includes('pmfby') || titleStr.includes('fasal bima')) return 'https://www.myscheme.gov.in/schemes/pmfby';
+  if (titleStr.includes('kcc') || titleStr.includes('kisan credit card')) return 'https://www.myscheme.gov.in/schemes/kcc';
+  
+  if (s.official_url) return s.official_url;
+  if (s.application_url) return s.application_url;
+  
+  const cleanTitle = titleStr.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return cleanTitle ? `https://www.myscheme.gov.in/schemes/${cleanTitle}` : 'https://www.myscheme.gov.in/';
+};
+
 export const getActionLinks = (
   notif: any, 
   parsed: any, 
@@ -115,11 +134,11 @@ export const getActionLinks = (
         sub: s.scheme_category || s.agency || s.category_name || s.ministry || '',
         badge: s.scheme_type || 'AGRI SCHEME',
         meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details || s.benefits ? `Benefit: ${s.benefit_amount || s.benefit_details || s.benefits}` : ''].filter(Boolean),
-        url: s.official_url || s.application_url || s.portal_link || s.source_url || (s.scheme_name?.includes('PM-KISAN') ? 'https://pmkisan.gov.in/' : null),
+        url: getMySchemeUrl(s),
         btnLabel: 'Claim Farmer Benefit'
       })),
       fallbacks: [
-        { label: `PM-KISAN scheme for farmers in ${locLabel}`, url: 'https://pmkisan.gov.in/', color: 'bg-green-600 text-white' },
+        { label: `PM-KISAN scheme on MyScheme Portal`, url: 'https://www.myscheme.gov.in/schemes/pm-kisan', color: 'bg-green-600 text-white' },
         { label: `Agri schemes for ${occLabel} — MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent('farmer '+occ)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
         { label: `Search "${occLabel} agriculture support ${locLabel}"`, url: buildGoogleUrl(`${occ} agriculture scheme ${loc}`), color: 'bg-surface border border-outline-variant text-outline' },
       ],
@@ -138,12 +157,12 @@ export const getActionLinks = (
         sub: s.scheme_category || s.agency || s.category_name || s.ministry || '',
         badge: s.scheme_type || 'SCHEME',
         meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details || s.benefits ? `Benefit: ${s.benefit_amount || s.benefit_details || s.benefits}` : ''].filter(Boolean),
-        url: s.application_url || s.official_url || s.portal_link || s.source_url,
+        url: getMySchemeUrl(s),
         btnLabel: 'Apply for Scheme'
       })),
       fallbacks: [
         { label: `Find schemes for ${occLabel} on MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent(occ || 'welfare')}`, color: 'bg-[#1a73e8] text-white' },
-        { label: 'PM-KISAN / PM Schemes Portal', url: 'https://pmkisan.gov.in/', color: 'bg-primary/10 border border-primary/30 text-primary' },
+        { label: 'PM-KISAN on MyScheme Portal', url: 'https://www.myscheme.gov.in/schemes/pm-kisan', color: 'bg-primary/10 border border-primary/30 text-primary' },
       ],
       moreLabel: 'Browse all schemes on MyScheme', moreUrl: 'https://www.myscheme.gov.in/'
     };
