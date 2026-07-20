@@ -6,19 +6,40 @@ export const locScore = (item: any, dist: string, state: string) => {
   const d = (item.district || item.city || item.location || '').toLowerCase();
   const st = (item.state || '').toLowerCase();
   if (dist && (d.includes(dist) || d.includes(dist.split(' ')[0]))) s += 5;
-  if (state && st.includes(state.split('/')[0].trim())) s += 2;
+  const stClean = (state || '').split('/')[0].trim().toLowerCase();
+  if (stClean && (st.includes(stClean) || st === 'all' || st === 'central' || st === 'india' || !st)) s += 2;
   return s;
 };
 
-export const kwScore = (item: any, fields: string[], keywords: string[]) => {
+export const kwScore = (item: any, fields: string[], keywords: string[], title = '', msg = '') => {
   let s = 0;
+  const name = (item.scheme_name || item.title || item.job_role_position || item.facility_name || item.service_name || '').toLowerCase();
+  const slug = (item.slug || '').toLowerCase();
   const haystack = fields.map(f => (item[f] || '').toLowerCase()).join(' ');
-  for (const w of keywords) { if (w.length > 2 && haystack.includes(w)) s += 3; }
+
+  // Direct match bonuses
+  if (name.length > 3 && (title.includes(name) || msg.includes(name))) {
+    s += 50;
+  }
+  if (slug.length > 2 && (title.includes(slug) || msg.includes(slug))) {
+    s += 50;
+  }
+  const acronymMatch = name.match(/\(([^)]+)\)/);
+  if (acronymMatch && acronymMatch[1]) {
+    const acro = acronymMatch[1].toLowerCase();
+    if (acro.length >= 2 && (title.includes(acro) || msg.includes(acro))) {
+      s += 50;
+    }
+  }
+
+  for (const w of keywords) {
+    if (w.length > 2 && (haystack.includes(w) || name.includes(w))) s += 3;
+  }
   return s;
 };
 
-export const matchItems = (list: any[], kwFields: string[], kws: string[], dist: string, state: string, n = 3) =>
-  (Array.isArray(list) ? list : []).map(i => ({ i, s: kwScore(i, kwFields, kws) + locScore(i, dist, state) }))
+export const matchItems = (list: any[], kwFields: string[], kws: string[], dist: string, state: string, n = 3, title = '', msg = '') =>
+  (Array.isArray(list) ? list : []).map(i => ({ i, s: kwScore(i, kwFields, kws, title, msg) + locScore(i, dist, state) }))
     .filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map(x => x.i);
 
 export const getActionLinks = (
@@ -41,10 +62,8 @@ export const getActionLinks = (
   const loc = [scoringData?.district, state.split('/')[0]?.trim()].filter(Boolean).join(', ');
   
   let kws = occ.toLowerCase().split(/[\s,]+/).filter(Boolean);
-  if (kws.length === 0 || occ.toLowerCase().includes('not applicable')) {
-    // Fallback to extracting keywords from title
-    kws = title.split(/[\s,]+/).filter((w: string) => !['new', 'job', 'alert', 'alert!', 'update', 'opportunities'].includes(w));
-  }
+  const textTokens = (title + ' ' + msg).toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !['new', 'job', 'alert', 'alert!', 'update', 'opportunities', 'eligible', 'claim', 'free', 'benefits', 'apply'].includes(w));
+  kws = Array.from(new Set([...kws, ...textTokens]));
 
   // ── EMPLOYMENT ───────────────────────────────────────────────────────────
   if (cat.includes('EMPLOY') || cat.includes('JOB') || title.includes('job') || msg.includes('job')) {
@@ -91,14 +110,14 @@ export const getActionLinks = (
   // ── SCHEMES ──────────────────────────────────────────────────────────────
   if (cat.includes('SCHEME') || cat.includes('BENEFIT') || cat.includes('WELFARE') || title.includes('scheme') || msg.includes('scheme') || msg.includes('yojana')) {
     const schemeKws = [...kws, 'scheme', 'yojana', 'benefit'];
-    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description'], schemeKws, dist, state, 1);
+    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description'], schemeKws, dist, state, 1, title, msg);
     return {
       type: 'scheme', label: 'Matching Schemes', icon: 'policy',
       items: matched.map(s => ({
         title: s.scheme_name || s.title || 'Government Scheme',
-        sub: s.scheme_category || s.agency || '',
+        sub: s.scheme_category || s.agency || s.category_name || s.ministry || '',
         badge: s.scheme_type || 'SCHEME',
-        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details ? `Benefit: ${s.benefit_amount || s.benefit_details}` : ''].filter(Boolean),
+        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details || s.benefits ? `Benefit: ${s.benefit_amount || s.benefit_details || s.benefits}` : ''].filter(Boolean),
         url: s.application_url || s.official_url || s.portal_link || s.source_url,
         btnLabel: 'Apply for Scheme'
       })),
@@ -113,14 +132,14 @@ export const getActionLinks = (
   // ── AGRICULTURE ──────────────────────────────────────────────────────────
   if (cat.includes('AGRI') || cat.includes('FARM') || cat.includes('KISAN') || title.includes('farm') || msg.includes('farm') || msg.includes('kisan')) {
     const agriKws = [...kws, 'kisan', 'farmer', 'agriculture', 'krishi', 'crop', 'maan-dhan'];
-    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description','tags'], agriKws, dist, state, 1);
+    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description','tags'], agriKws, dist, state, 1, title, msg);
     return {
       type: 'scheme', label: 'Farmer Scheme Update', icon: 'agriculture',
       items: matched.map(s => ({
         title: s.scheme_name || s.title || 'Agriculture Scheme',
-        sub: s.scheme_category || s.agency || '',
+        sub: s.scheme_category || s.agency || s.category_name || s.ministry || '',
         badge: s.scheme_type || 'AGRI SCHEME',
-        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details ? `Benefit: ${s.benefit_amount || s.benefit_details}` : ''].filter(Boolean),
+        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details || s.benefits ? `Benefit: ${s.benefit_amount || s.benefit_details || s.benefits}` : ''].filter(Boolean),
         url: s.application_url || s.official_url || s.portal_link || s.source_url,
         btnLabel: 'Claim Farmer Benefit'
       })),
