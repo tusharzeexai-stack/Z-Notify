@@ -96,7 +96,14 @@ export interface SchemeItem {
   description: string;
   agency: string;
   benefit_details?: string;
-  eligibility_criteria: any;
+  eligibility_criteria?: any;
+  scheme_name?: string;
+  official_url?: string;
+  application_url?: string;
+  scheme_category?: string;
+  benefit_amount?: string;
+  state?: string;
+  district?: string;
 }
 
 export interface JobItem {
@@ -230,6 +237,81 @@ const DashboardContext = createContext<DashboardContextType | undefined>(undefin
 const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const API_BASE = import.meta.env.VITE_API_URL || (isLocalhost ? 'http://localhost:8000/api' : '/api');
 
+const DEFAULT_SCHEMES: SchemeItem[] = [
+  {
+    id: '4a861b4f-d1c6-4c2f-bfd4-76ff58fd2eb7',
+    scheme_name: 'PM Kisan Samman Nidhi (PM-KISAN)',
+    title: 'PM Kisan Samman Nidhi (PM-KISAN)',
+    description: 'Provides direct income support of Rs 6,000 per year to landholding farmer families.',
+    official_url: 'https://pmkisan.gov.in/',
+    application_url: 'https://pmkisan.gov.in/',
+    scheme_category: 'Agriculture & Farmer Welfare',
+    agency: 'Ministry of Agriculture and Farmers Welfare',
+    benefit_amount: 'Rs 6,000 per year',
+    benefit_details: 'Direct cash transfer in 3 equal installments of Rs 2,000',
+    state: 'Any',
+    district: 'Any'
+  },
+  {
+    id: 'f62f3c88-98fc-444a-ae93-d27cb11af068',
+    scheme_name: 'PM Kisan Maan-Dhan Yojana (PM-KMY)',
+    title: 'PM Kisan Maan-Dhan Yojana (PM-KMY)',
+    description: 'Pension scheme for small and marginal farmers providing Rs 3,000 monthly pension.',
+    official_url: 'https://maandhan.in/',
+    application_url: 'https://maandhan.in/',
+    scheme_category: 'Pension & Social Security',
+    agency: 'Ministry of Agriculture and Farmers Welfare',
+    benefit_amount: 'Rs 3,000 per month',
+    benefit_details: 'Assured pension after reaching age 60',
+    state: 'Any',
+    district: 'Any'
+  },
+  {
+    id: '1c17b03c-0f16-407a-9703-42a5a142a459',
+    scheme_name: 'Pradhan Mantri Fasal Bima Yojana (PMFBY)',
+    title: 'Pradhan Mantri Fasal Bima Yojana (PMFBY)',
+    description: 'Financial support to farmers suffering crop loss/damage due to natural calamities.',
+    official_url: 'https://pmfby.gov.in/',
+    application_url: 'https://pmfby.gov.in/',
+    scheme_category: 'Crop Insurance',
+    agency: 'Ministry of Agriculture',
+    benefit_amount: 'Comprehensive Crop Insurance',
+    state: 'Any',
+    district: 'Any'
+  }
+];
+
+const DEFAULT_JOBS: JobItem[] = [
+  {
+    id: 'c1142dcf-9b31-4b9c-af7b-c3839b1c821f',
+    sl_no: 'J-101',
+    job_role_position: 'Carpenter',
+    job_type: 'Full Time',
+    job_category: 'Construction & Carpentry',
+    name_of_company_person: 'Registered Contractor / Individual',
+    salary_range: 'Rs 18,000 - 25,000 / month',
+    district: 'Thane',
+    state: 'Maharashtra',
+    exp_required: '0-2 Years',
+    job_url: 'https://www.ncs.gov.in/Pages/Search.aspx?searchText=Carpenter&location=Thane',
+    status: 'Approved'
+  },
+  {
+    id: '99762470-f4e3-4ced-9a13-73d2af768110',
+    sl_no: 'J-102',
+    job_role_position: 'Sap Functional Consultants',
+    job_type: 'Full Time',
+    job_category: 'IT & Software',
+    name_of_company_person: 'Enterprise Tech Solutions',
+    salary_range: 'Rs 45,000 - 75,000 / month',
+    district: 'Thane',
+    state: 'Maharashtra',
+    exp_required: '2-5 Years',
+    job_url: 'https://www.ncs.gov.in/Pages/Search.aspx?searchText=Sap&location=Thane',
+    status: 'Approved'
+  }
+];
+
 export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(localStorage.getItem('hpns_token'));
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -237,8 +319,8 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
-  const [schemes, setSchemes] = useState<SchemeItem[]>([]);
-  const [jobs, setJobs] = useState<JobItem[]>([]);
+  const [schemes, setSchemes] = useState<SchemeItem[]>(DEFAULT_SCHEMES);
+  const [jobs, setJobs] = useState<JobItem[]>(DEFAULT_JOBS);
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [medicalFacilities, setMedicalFacilities] = useState<MedicalFacilityItem[]>([]);
   const [rules, setRules] = useState<RuleWeights | null>(null);

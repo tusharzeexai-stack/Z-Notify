@@ -427,7 +427,7 @@ export const GeneratedNotifications: React.FC = () => {
                                 {al.items.length === 0 && (
                                   <p className="text-amber-400 text-[12px] font-bold flex items-center gap-xs">
                                     <span className="material-symbols-outlined text-[16px]">info</span>
-                                    Not found in database — use links below:
+                                    Direct Application & Portal Links:
                                   </p>
                                 )}
                                 <div className="flex flex-col gap-sm">
