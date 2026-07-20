@@ -51,32 +51,11 @@ def shutdown_event():
     sync_scheduler.shutdown()
 
 
-# CORS configuration — reads ALLOWED_ORIGINS env var (comma-separated) or defaults to localhost + Vercel wildcard
-_raw_origins = os.getenv("ALLOWED_ORIGINS", "")
-_extra_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
-
-_default_origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-    "http://localhost:5175",
-    "http://127.0.0.1:5175",
-    "http://localhost:5182",
-    "http://127.0.0.1:5182",
-]
-
-# In production allow all origins — the monorepo setup serves frontend + backend on the same
-# domain (no cross-origin), but a wildcard ensures any Vercel preview URL also works.
-_allow_all = os.getenv("CORS_ALLOW_ALL", "false").lower() == "true"
-
+# CORS configuration — allow all origins (local + Vercel deployment)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if _allow_all else (_default_origins + _extra_origins),
-    allow_origin_regex=r"https://.*\.vercel\.app" if not _allow_all else None,
-    allow_credentials=not _allow_all,  # credentials not compatible with wildcard origin
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
