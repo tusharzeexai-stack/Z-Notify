@@ -18,7 +18,7 @@ export const kwScore = (item: any, fields: string[], keywords: string[]) => {
 };
 
 export const matchItems = (list: any[], kwFields: string[], kws: string[], dist: string, state: string, n = 3) =>
-  list.map(i => ({ i, s: kwScore(i, kwFields, kws) + locScore(i, dist, state) }))
+  (Array.isArray(list) ? list : []).map(i => ({ i, s: kwScore(i, kwFields, kws) + locScore(i, dist, state) }))
     .filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map(x => x.i);
 
 export const getActionLinks = (
@@ -27,7 +27,10 @@ export const getActionLinks = (
   scoringData: any,
   inventories: { jobs?: any[], schemes?: any[], services?: any[], medicalFacilities?: any[] }
 ) => {
-  const { jobs = [], schemes = [], services = [], medicalFacilities = [] } = inventories;
+  const jobs = inventories.jobs || [];
+  const schemes = inventories.schemes || [];
+  const services = inventories.services || [];
+  const medicalFacilities = inventories.medicalFacilities || [];
   
   const cat = (notif.category || '').toUpperCase();
   const title = (parsed.title || notif.title || '').toLowerCase();
