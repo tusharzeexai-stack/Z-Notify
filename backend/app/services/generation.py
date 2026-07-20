@@ -33,25 +33,41 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
     ).delete(synchronize_session=False)
     db.commit()
 
-    category_limits = {"Scheme": 0, "Job": 0, "Service": 0, "Content": 0}
+    # Normalize scores and identify top 2 categories
+    norm_scores = {}
     if scores:
-        sorted_cats = sorted(scores.keys(), key=lambda k: scores[k], reverse=True)
-        if len(sorted_cats) >= 1:
-            category_limits[sorted_cats[0]] = 3
-        if len(sorted_cats) >= 2:
-            category_limits[sorted_cats[1]] = 2
-    else:
-        category_limits["Scheme"] = 3
-        category_limits["Job"] = 2
-        
-    health_limit = 1
-    common_limit = 1
+        for k, v in scores.items():
+            k_lower = str(k).lower()
+            if "scheme" in k_lower or "welfare" in k_lower:
+                norm_scores["Scheme"] = float(v)
+            elif "job" in k_lower or "employ" in k_lower:
+                norm_scores["Job"] = float(v)
+            elif "service" in k_lower:
+                norm_scores["Service"] = float(v)
+            elif "content" in k_lower:
+                norm_scores["Content"] = float(v)
+            else:
+                norm_scores[k] = float(v)
+                
+    for cat in ["Scheme", "Job", "Service", "Content"]:
+        if cat not in norm_scores:
+            norm_scores[cat] = 0.0
+
+    sorted_cats = sorted(norm_scores.keys(), key=lambda k: norm_scores[k], reverse=True)
+    top1_cat = sorted_cats[0]
+    top2_cat = sorted_cats[1]
+
+    category_limits = {
+        top1_cat: 3, # 3 notifications for highest score category
+        top2_cat: 2  # 2 notifications for second highest score category
+    }
     
-    # List to hold tasks for the ThreadPoolExecutor
     ai_tasks = []
 
-    # 1. Generate Schemes (DB First Check -> Web Search Fallback)
-    if category_limits["Scheme"] > 0:
+    def get_schemes_tasks(limit):
+        tasks = []
+        if limit <= 0:
+            return tasks
         from app.services.scheme_search import find_or_search_scheme
         search_query = f"{user.occupation or ''} {user.state or ''} welfare scheme"
         schemes_found = find_or_search_scheme(
@@ -59,9 +75,8 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
             query_text=search_query,
             user_state=user.state,
             user_occupation=user.occupation,
-            limit=category_limits["Scheme"]
+            limit=limit
         )
-        
         for s in schemes_found:
             s_name = s.get("scheme_name", "Welfare Scheme")
             source_type = s.get("source_type", "LOCAL_DATABASE")
@@ -76,7 +91,7 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
             priority = "high"
             bucket = classify_notification_bucket(s_name, s.get("description", ""))
             
-            ai_tasks.append({
+            tasks.append({
                 "title": s_name,
                 "prefix_title": f"Welfare: {s_name}",
                 "description": s.get("description", "")[:200] + "...",
@@ -88,17 +103,17 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
                 "bucket": bucket,
                 "source": f"Scheme: {s.get('id', 'db-scheme')}"
             })
+        return tasks
 
-    # 2. Generate Jobs (SQLite DB Match -> Web Search Fallback)
-    if category_limits["Job"] > 0:
+    def get_jobs_tasks(limit):
+        tasks = []
+        if limit <= 0:
+            return tasks
         jobs = db.query(Job).filter(Job.is_deleted == False).all()
         job_matches = []
-        
         for j in jobs:
             score = 0
             reasons = []
-            
-            # Demographic matching using the new 21-column schema
             if user.state and j.state and user.state.lower() in j.state.lower():
                 score += 30
                 reasons.append("State match")
@@ -111,26 +126,19 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
             if user.occupation and j.occupation and user.occupation.lower() in j.occupation.lower():
                 score += 20
                 reasons.append("Occupation match")
-                
-            # Baseline score if profile is empty or if we want to show generic jobs
             if score == 0 and not user.state and not user.district and not user.education:
                 score = 50
                 reasons.append("General availability")
-                
             if score >= 30:
                 job_matches.append((j, score, ", ".join(reasons)))
-                
         job_matches.sort(key=lambda x: x[1], reverse=True)
         
         selected_jobs_data = []
-        
         if job_matches:
-            # Use local SQLite jobs
-            for j, score, reason in job_matches[:category_limits["Job"]]:
+            for j, score, reason in job_matches[:limit]:
                 role = j.job_role_position or "Unknown Role"
                 company = j.name_of_company_person or "Unknown Company"
                 qualifications = (j.education_qualification or "Any").replace('[', '').replace(']', '').replace('"', '')
-                
                 raw_text = (
                     f"Job Title / Role: {role}\n"
                     f"Company: {company}\n"
@@ -150,13 +158,10 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
                     "source": f"Job: {j.sl_no}"
                 })
         else:
-            # Web Search Fallback
             try:
                 from googlesearch import search
                 search_query = f"'{user.occupation or 'Jobs'}' vacancy in '{user.district or user.state or 'India'}' apply online"
-                # Using basic search for URLs
-                search_results = list(search(search_query, num=category_limits["Job"], stop=category_limits["Job"], pause=2.0))
-                
+                search_results = list(search(search_query, num_results=limit))
                 for i, result_url in enumerate(search_results):
                     raw_text = (
                         f"Job Title / Role: Job vacancy suitable for {user.occupation or 'your profile'}\n"
@@ -174,14 +179,11 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
                     })
             except Exception as e:
                 print(f"Web search fallback failed: {e}")
-                pass
                 
-        # Append selected jobs to AI tasks queue
         for data in selected_jobs_data:
             priority = "medium" if data["score"] >= 70 else "low"
             bucket = classify_notification_bucket(data["title"], data["description"])
-            
-            ai_tasks.append({
+            tasks.append({
                 "title": data["title"],
                 "prefix_title": f"Job: {data['title']}",
                 "description": data["description"],
@@ -193,9 +195,12 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
                 "bucket": bucket,
                 "source": data["source"]
             })
+        return tasks
 
-    # 3. Generate Services (With Web Search Fallback for Links)
-    if category_limits["Service"] > 0:
+    def get_services_tasks(limit):
+        tasks = []
+        if limit <= 0:
+            return tasks
         services = db.query(Service).filter(Service.is_deleted == False).all()
         if not services:
             services = [
@@ -220,26 +225,20 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
             if score >= 40:
                 service_matches.append((sv, score, reason))
         service_matches.sort(key=lambda x: x[1], reverse=True)
-        
-        for sv, score, reason in service_matches[:category_limits["Service"]]:
-            # The Service schema lacks a URL, so we dynamically search for one
+        for sv, score, reason in service_matches[:limit]:
             service_url = ""
             try:
                 from googlesearch import search
                 search_query = f"official portal {sv.title} apply online {sv.department}"
-                # Get the top 1 result
-                search_results = list(search(search_query, num=1, stop=1, pause=1.0))
+                search_results = list(search(search_query, num_results=1))
                 if search_results:
                     service_url = search_results[0]
             except Exception as e:
                 print(f"Service link search failed: {e}")
-                pass
-                
             link_text = f"\nApply Link / Contact: {service_url}" if service_url else ""
             raw_text = f"Service: {sv.title}\nDepartment: {sv.department}\nDescription: {sv.description}\nEligibility: {reason}{link_text}"
             bucket = classify_notification_bucket(sv.title, sv.description)
-            
-            ai_tasks.append({
+            tasks.append({
                 "title": sv.title,
                 "prefix_title": f"Service: {sv.title}",
                 "description": sv.description[:200] + "...",
@@ -251,20 +250,22 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
                 "bucket": bucket,
                 "source": f"Service: {sv.id}"
             })
-            
-    # 4. Generate Content (Synthesized)
-    if category_limits["Content"] > 0:
+        return tasks
+
+    def get_content_tasks(limit):
+        tasks = []
+        if limit <= 0:
+            return tasks
         content_items = [
             ("Financial Literacy Guide", "Read our latest guide on managing savings and investing for the future.", "Education"),
             ("New User Handbook", "Discover all the features of the HPNS system to maximize your welfare benefits.", "General"),
             ("Digital Security Tips", "Learn how to protect your personal information and identity online.", "Security")
         ]
-        for idx in range(category_limits["Content"]):
+        for idx in range(limit):
             if idx < len(content_items):
                 title, desc, tag = content_items[idx]
                 raw_text = f"Article: {title}\nTopic: {tag}\nSummary: {desc}"
-                
-                ai_tasks.append({
+                tasks.append({
                     "title": title,
                     "prefix_title": f"Content: {title}",
                     "description": desc,
@@ -276,65 +277,78 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
                     "bucket": "Content & Articles",
                     "source": "System Content"
                 })
+        return tasks
 
-    # 5. Generate Healthcare (Goal: 1)
-    if health_limit > 0:
-        facilities = db.query(MedicalFacility).filter(MedicalFacility.is_deleted == False).all()
-        if not facilities:
-            facilities = [
-                MedicalFacility(
-                    id="medical-facility-fallback-1",
-                    name="Primary Health Center (PHC) Bhandara",
-                    type="General OPD & Wellness Clinic",
-                    location="Main Road, Bhandara, Maharashtra",
-                    services_offered={"state": "Maharashtra", "occupation": "Any"}
-                )
-            ]
-        facility_matches = []
-        for f in facilities:
-            score, reason = calculate_eligibility_score(user, f.services_offered, db)
-            facility_matches.append((f, score, reason))
-        facility_matches.sort(key=lambda x: x[1], reverse=True)
-        
-        if facility_matches:
-            f, score, reason = facility_matches[0]
-            raw_text = f"Facility: {f.name}\nType: {f.type}\nLocation: {f.location}\nProximity Eligibility: {reason}"
-            priority = "high" if f.type.lower() == "emergency" else "medium"
-            bucket = classify_notification_bucket(f.name, f.name + " " + f.type)
-            
-            ai_tasks.append({
-                "title": f.name,
-                "prefix_title": f"Health: {f.name}",
-                "description": f"Type: {f.type} facility located at {f.location}.",
-                "raw_text": raw_text,
-                "category": "Healthcare",
-                "score": score,
-                "reason": reason,
-                "priority": priority,
-                "bucket": bucket,
-                "source": f"Medical: {f.id}"
-            })
+    def get_category_tasks(cat_name, limit):
+        if cat_name == "Scheme":
+            return get_schemes_tasks(limit)
+        elif cat_name == "Job":
+            return get_jobs_tasks(limit)
+        elif cat_name == "Service":
+            return get_services_tasks(limit)
+        elif cat_name == "Content":
+            return get_content_tasks(limit)
+        return []
 
-    # 6. Generate Common Announcement (Goal: 1)
-    if common_limit > 0:
-        title = "Important Announcement: Profile Update"
-        desc = "Please ensure your demographic profile is updated to receive accurate welfare recommendations."
-        raw_text = f"Announcement: {title}\nDetails: {desc}"
-        
+    # Step 1: 3 notifications for highest score category
+    ai_tasks.extend(get_category_tasks(top1_cat, 3))
+
+    # Step 2: 2 notifications for second highest score category
+    ai_tasks.extend(get_category_tasks(top2_cat, 2))
+
+    # Step 3: 1 notification for Healthcare
+    facilities = db.query(MedicalFacility).filter(MedicalFacility.is_deleted == False).all()
+    if not facilities:
+        facilities = [
+            MedicalFacility(
+                id="medical-facility-fallback-1",
+                name="Primary Health Center (PHC) Bhandara",
+                type="General OPD & Wellness Clinic",
+                location="Main Road, Bhandara, Maharashtra",
+                services_offered={"state": "Maharashtra", "occupation": "Any"}
+            )
+        ]
+    facility_matches = []
+    for f in facilities:
+        score, reason = calculate_eligibility_score(user, f.services_offered, db)
+        facility_matches.append((f, score, reason))
+    facility_matches.sort(key=lambda x: x[1], reverse=True)
+    if facility_matches:
+        f, score, reason = facility_matches[0]
+        raw_text = f"Facility: {f.name}\nType: {f.type}\nLocation: {f.location}\nProximity Eligibility: {reason}"
+        priority = "high" if f.type.lower() == "emergency" else "medium"
+        bucket = classify_notification_bucket(f.name, f.name + " " + f.type)
         ai_tasks.append({
-            "title": title,
-            "prefix_title": f"Announcement: {title}",
-            "description": desc,
+            "title": f.name,
+            "prefix_title": f"Health: {f.name}",
+            "description": f"Type: {f.type} facility located at {f.location}.",
             "raw_text": raw_text,
-            "category": "Announcement",
-            "score": 100.0,
-            "reason": "System wide announcement",
-            "priority": "high",
-            "bucket": "Announcements",
-            "source": "System Announcement"
+            "category": "Healthcare",
+            "score": score,
+            "reason": reason,
+            "priority": priority,
+            "bucket": bucket,
+            "source": f"Medical: {f.id}"
         })
 
-    # 7. Fill up to 7 notifications using remaining Schemes if count < 7
+    # Step 4: 1 notification for Announcement / General
+    announcement_title = "Important Announcement: Profile Update"
+    announcement_desc = "Please ensure your demographic profile is updated to receive accurate welfare recommendations."
+    raw_text = f"Announcement: {announcement_title}\nDetails: {announcement_desc}"
+    ai_tasks.append({
+        "title": announcement_title,
+        "prefix_title": f"Announcement: {announcement_title}",
+        "description": announcement_desc,
+        "raw_text": raw_text,
+        "category": "Announcement",
+        "score": 100.0,
+        "reason": "System wide announcement",
+        "priority": "high",
+        "bucket": "Announcements",
+        "source": "System Announcement"
+    })
+
+    # Step 5: Fill up to 7 notifications using remaining Schemes if count < 7
     if len(ai_tasks) < 7:
         from app.services.scheme_search import find_or_search_scheme
         needed = 7 - len(ai_tasks)
