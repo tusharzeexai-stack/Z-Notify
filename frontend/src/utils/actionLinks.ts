@@ -21,6 +21,20 @@ export const kwScore = (item: any, fields: string[], keywords: string[], title =
   if (name.length > 3 && (title.includes(name) || msg.includes(name))) {
     s += 50;
   }
+  const cleanName = name.replace(/\s*\([^)]*\)/g, '').trim();
+  if (cleanName.length > 3 && (title.includes(cleanName) || msg.includes(cleanName))) {
+    s += 50;
+  }
+  // Name token overlap bonus
+  const nameTokens = cleanName.split(/\s+/).filter((w: string) => w.length > 2);
+  if (nameTokens.length > 0) {
+    let matchedTokens = 0;
+    for (const t of nameTokens) {
+      if (title.includes(t) || msg.includes(t)) matchedTokens++;
+    }
+    if (matchedTokens / nameTokens.length >= 0.5) s += 30;
+  }
+
   if (slug.length > 2 && (title.includes(slug) || msg.includes(slug))) {
     s += 50;
   }
@@ -70,7 +84,7 @@ export const getActionLinks = (
   kws = Array.from(new Set([...kws, ...textTokens]));
 
   // ── EMPLOYMENT ───────────────────────────────────────────────────────────
-  if (cat.includes('EMPLOY') || cat.includes('JOB') || title.includes('job') || msg.includes('job')) {
+  if (cat.includes('EMPLOY') || cat.includes('JOB') || title.includes('job') || msg.includes('job') || msg.includes('carpenter') || msg.includes('consultant')) {
     const matched = matchItems(jobs, ['job_role_position','job_category','job_subcategory','occupation'], kws, dist, state, 1, title, msg);
     return {
       type: 'job', label: 'Matched Jobs', icon: 'work',
@@ -79,7 +93,7 @@ export const getActionLinks = (
         sub: j.name_of_company_person || '',
         badge: j.job_type || 'VACANCY',
         meta: [`${j.district || j.city || ''}${j.state ? ', '+j.state : ''}`, j.salary_range, j.exp_required ? `Exp: ${j.exp_required}` : ''].filter(Boolean),
-        url: j.job_url || (j.job_contact_email ? `mailto:${j.job_contact_email}` : null),
+        url: j.job_url || j.official_url || (j.job_contact_email ? `mailto:${j.job_contact_email}` : null),
         btnLabel: 'Apply Now'
       })),
       fallbacks: [
@@ -90,28 +104,30 @@ export const getActionLinks = (
     };
   }
 
-  // ── HEALTHCARE ───────────────────────────────────────────────────────────
-  if (cat.includes('HEALTH') || cat.includes('MEDIC') || title.includes('health') || title.includes('hospital') || msg.includes('hospital')) {
-    const matched = matchItems(medicalFacilities, ['facility_name','facility_type','specialization'], ['hospital','clinic','health','medical','primary'], dist, state, 1, title, msg);
+  // ── AGRICULTURE SCHEMES (Prioritized before generic SCHEMES) ─────────────
+  if (cat.includes('AGRI') || cat.includes('FARM') || cat.includes('KISAN') || title.includes('farm') || msg.includes('farm') || msg.includes('kisan') || msg.includes('pm-kisan') || msg.includes('pm-kmy')) {
+    const agriKws = [...kws, 'kisan', 'farmer', 'agriculture', 'krishi', 'crop', 'maan-dhan', 'samman', 'nidhi'];
+    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description','tags'], agriKws, dist, state, 1, title, msg);
     return {
-      type: 'health', label: 'Nearby Health Facilities', icon: 'local_hospital',
-      items: matched.map(f => ({
-        title: f.facility_name || 'Health Facility',
-        sub: f.facility_type || '',
-        badge: f.facility_type || 'CLINIC',
-        meta: [`${f.district || f.city || ''}${f.state ? ', '+f.state : ''}`, f.contact_number].filter(Boolean),
-        url: f.website || (f.contact_number ? `tel:${f.contact_number}` : null),
-        btnLabel: 'Get Directions / Call'
+      type: 'scheme', label: 'Farmer Scheme Update', icon: 'agriculture',
+      items: matched.map(s => ({
+        title: s.scheme_name || s.title || 'Agriculture Scheme',
+        sub: s.scheme_category || s.agency || s.category_name || s.ministry || '',
+        badge: s.scheme_type || 'AGRI SCHEME',
+        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details || s.benefits ? `Benefit: ${s.benefit_amount || s.benefit_details || s.benefits}` : ''].filter(Boolean),
+        url: s.official_url || s.application_url || s.portal_link || s.source_url || (s.scheme_name?.includes('PM-KISAN') ? 'https://pmkisan.gov.in/' : null),
+        btnLabel: 'Claim Farmer Benefit'
       })),
       fallbacks: [
-        { label: `Find hospitals near ${loc} on Google`, url: buildGoogleUrl(`hospitals near ${loc}`), color: 'bg-[#4285F4] text-white' },
-        { label: 'Ayushman Bharat Portal', url: 'https://pmjay.gov.in/', color: 'bg-primary/10 border border-primary/30 text-primary' },
+        { label: `PM-KISAN scheme for farmers in ${locLabel}`, url: 'https://pmkisan.gov.in/', color: 'bg-green-600 text-white' },
+        { label: `Agri schemes for ${occLabel} — MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent('farmer '+occ)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
+        { label: `Search "${occLabel} agriculture support ${locLabel}"`, url: buildGoogleUrl(`${occ} agriculture scheme ${loc}`), color: 'bg-surface border border-outline-variant text-outline' },
       ],
-      moreLabel: `Find more health services near ${loc}`, moreUrl: buildGoogleUrl(`primary health center near ${loc}`)
+      moreLabel: 'Kisan Call Center: 1800-180-1551', moreUrl: 'tel:18001801551'
     };
   }
 
-  // ── SCHEMES ──────────────────────────────────────────────────────────────
+  // ── GENERAL SCHEMES ──────────────────────────────────────────────────────
   if (cat.includes('SCHEME') || cat.includes('BENEFIT') || cat.includes('WELFARE') || title.includes('scheme') || msg.includes('scheme') || msg.includes('yojana')) {
     const schemeKws = [...kws, 'scheme', 'yojana', 'benefit'];
     const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description'], schemeKws, dist, state, 1, title, msg);
@@ -133,26 +149,24 @@ export const getActionLinks = (
     };
   }
 
-  // ── AGRICULTURE ──────────────────────────────────────────────────────────
-  if (cat.includes('AGRI') || cat.includes('FARM') || cat.includes('KISAN') || title.includes('farm') || msg.includes('farm') || msg.includes('kisan')) {
-    const agriKws = [...kws, 'kisan', 'farmer', 'agriculture', 'krishi', 'crop', 'maan-dhan'];
-    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description','tags'], agriKws, dist, state, 1, title, msg);
+  // ── HEALTHCARE ───────────────────────────────────────────────────────────
+  if (cat.includes('HEALTH') || cat.includes('MEDIC') || title.includes('health') || title.includes('hospital') || msg.includes('hospital')) {
+    const matched = matchItems(medicalFacilities, ['facility_name','facility_type','specialization'], ['hospital','clinic','health','medical','primary'], dist, state, 1, title, msg);
     return {
-      type: 'scheme', label: 'Farmer Scheme Update', icon: 'agriculture',
-      items: matched.map(s => ({
-        title: s.scheme_name || s.title || 'Agriculture Scheme',
-        sub: s.scheme_category || s.agency || s.category_name || s.ministry || '',
-        badge: s.scheme_type || 'AGRI SCHEME',
-        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount || s.benefit_details || s.benefits ? `Benefit: ${s.benefit_amount || s.benefit_details || s.benefits}` : ''].filter(Boolean),
-        url: s.application_url || s.official_url || s.portal_link || s.source_url,
-        btnLabel: 'Claim Farmer Benefit'
+      type: 'health', label: 'Nearby Health Facilities', icon: 'local_hospital',
+      items: matched.map(f => ({
+        title: f.facility_name || 'Health Facility',
+        sub: f.facility_type || '',
+        badge: f.facility_type || 'CLINIC',
+        meta: [`${f.district || f.city || ''}${f.state ? ', '+f.state : ''}`, f.contact_number].filter(Boolean),
+        url: f.website || (f.contact_number ? `tel:${f.contact_number}` : null),
+        btnLabel: 'Get Directions / Call'
       })),
       fallbacks: [
-        { label: `PM-KISAN scheme for farmers in ${locLabel}`, url: 'https://pmkisan.gov.in/', color: 'bg-green-600 text-white' },
-        { label: `Agri schemes for ${occLabel} — MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent('farmer '+occ)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
-        { label: `Search "${occLabel} agriculture support ${locLabel}"`, url: buildGoogleUrl(`${occ} agriculture scheme ${loc}`), color: 'bg-surface border border-outline-variant text-outline' },
+        { label: `Find hospitals near ${loc} on Google`, url: buildGoogleUrl(`hospitals near ${loc}`), color: 'bg-[#4285F4] text-white' },
+        { label: 'Ayushman Bharat Portal', url: 'https://pmjay.gov.in/', color: 'bg-primary/10 border border-primary/30 text-primary' },
       ],
-      moreLabel: 'Kisan Call Center: 1800-180-1551', moreUrl: 'tel:18001801551'
+      moreLabel: `Find more health services near ${loc}`, moreUrl: buildGoogleUrl(`primary health center near ${loc}`)
     };
   }
 
