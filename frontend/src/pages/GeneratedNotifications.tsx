@@ -425,26 +425,21 @@ export const GeneratedNotifications: React.FC = () => {
                                   </>
                                 )}
                                 {al.items.length === 0 && (
-                                  <p className="text-amber-400 text-[12px] font-bold flex items-center gap-xs">
-                                    <span className="material-symbols-outlined text-[16px]">info</span>
-                                    Direct Application & Portal Links:
-                                  </p>
-                                )}
-                                <div className="flex flex-col gap-sm">
-                                  {al.fallbacks.map((fb: any, fi: number) => (
-                                    <button key={fi} onClick={() => openUrl(fb.url)}
-                                      className={`w-full text-[12px] font-bold py-sm rounded-lg flex items-center justify-center gap-xs hover:opacity-90 transition-all cursor-pointer ${fb.color}`}>
-                                      <span className="material-symbols-outlined text-[15px]">{al.icon}</span>
-                                      {fb.label}
-                                    </button>
-                                  ))}
-                                </div>
-                                {al.items.length > 0 && (
-                                  <button onClick={() => openUrl(al.moreUrl)}
-                                    className="w-full bg-surface border border-outline-variant text-outline text-[11px] font-bold py-xs rounded-lg flex items-center justify-center gap-xs hover:border-primary/40 hover:text-primary transition-all cursor-pointer">
-                                    <span className="material-symbols-outlined text-[14px]">search</span>
-                                    {al.moreLabel}
-                                  </button>
+                                  <>
+                                    <p className="text-amber-400 text-[12px] font-bold flex items-center gap-xs">
+                                      <span className="material-symbols-outlined text-[16px]">info</span>
+                                      Direct Application & Portal Links:
+                                    </p>
+                                    <div className="flex flex-col gap-sm">
+                                      {al.fallbacks.map((fb: any, fi: number) => (
+                                        <button key={fi} onClick={() => openUrl(fb.url)}
+                                          className={`w-full text-[12px] font-bold py-sm rounded-lg flex items-center justify-center gap-xs hover:opacity-90 transition-all cursor-pointer ${fb.color}`}>
+                                          <span className="material-symbols-outlined text-[15px]">{al.icon}</span>
+                                          {fb.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </>
                                 )}
                               </div>
                             );

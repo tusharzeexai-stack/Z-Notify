@@ -57,28 +57,29 @@ export const matchItems = (list: any[], kwFields: string[], kws: string[], dist:
     .filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map(x => x.i);
 
 export const getMySchemeUrl = (s: any) => {
-  const titleStr = (s.scheme_name || s.title || '').toLowerCase();
+  if (!s) return 'https://www.myscheme.gov.in/';
+  const sStr = JSON.stringify(s).toLowerCase();
   
   // High-priority exact scheme slug overrides to guarantee no 404s
-  if (titleStr.includes('pm-kmy') || titleStr.includes('pmkmy') || titleStr.includes('kisan maan-dhan') || titleStr.includes('maan-dhan yojana')) {
+  if (sStr.includes('pm-kmy') || sStr.includes('pmkmy') || sStr.includes('kisan maan-dhan') || sStr.includes('maan-dhan yojana')) {
     return 'https://www.myscheme.gov.in/schemes/pmkmy';
   }
-  if (titleStr.includes('pm-kisan') || titleStr.includes('kisan samman nidhi')) {
+  if (sStr.includes('pm-kisan') || sStr.includes('kisan samman nidhi')) {
     return 'https://www.myscheme.gov.in/schemes/pm-kisan';
   }
-  if (titleStr.includes('pmfby') || titleStr.includes('fasal bima')) {
+  if (sStr.includes('pmfby') || sStr.includes('fasal bima')) {
     return 'https://www.myscheme.gov.in/schemes/pmfby';
   }
-  if (titleStr.includes('kcc') || titleStr.includes('kisan credit card')) {
+  if (sStr.includes('kcc') || sStr.includes('kisan credit card')) {
     return 'https://www.myscheme.gov.in/schemes/kcc';
   }
-  if (titleStr.includes('pmay') || titleStr.includes('awas yojana')) {
+  if (sStr.includes('pmay') || sStr.includes('awas yojana')) {
     return 'https://www.myscheme.gov.in/schemes/pmay-u';
   }
-  if (titleStr.includes('pm-jay') || titleStr.includes('ayushman') || titleStr.includes('jan arogya')) {
+  if (sStr.includes('pm-jay') || sStr.includes('ayushman') || sStr.includes('jan arogya')) {
     return 'https://www.myscheme.gov.in/schemes/pm-jay';
   }
-  if (titleStr.includes('mudra') || titleStr.includes('pmmy')) {
+  if (sStr.includes('mudra') || sStr.includes('pmmy')) {
     return 'https://www.myscheme.gov.in/schemes/pmmy';
   }
 
@@ -98,23 +99,23 @@ export const getMySchemeUrl = (s: any) => {
   }
   
   if (url) {
-    return url.replace(/\/schemes\/pm-kmy\b/gi, '/schemes/pmkmy');
+    return url.replace(/\/schemes\/pm-kmy\b/gi, '/schemes/pmkmy').replace(/pm-kmy/gi, 'pmkmy');
   }
 
+  const titleStr = (s.scheme_name || s.title || '').toLowerCase();
   const cleanTitle = titleStr.replace(/\s*\([^)]*\)/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return cleanTitle ? `https://www.myscheme.gov.in/schemes/${cleanTitle}` : 'https://www.myscheme.gov.in/';
 };
 
 export const ensureSchemeMatch = (matched: any[], title: string, msg: string) => {
-  if (matched.length > 0) return matched;
-  
   const text = (title + ' ' + msg).toLowerCase();
   if (text.includes('pm-kmy') || text.includes('pmkmy') || text.includes('kisan maan-dhan') || text.includes('maan-dhan yojana')) {
     return [{ title: 'PM Kisan Maan-Dhan Yojana (PM-KMY)', scheme_category: 'Pension & Social Security', agency: 'Ministry of Agriculture and Farmers Welfare', benefit_amount: 'Rs 3,000 per month pension', slug: 'pmkmy', official_url: 'https://www.myscheme.gov.in/schemes/pmkmy' }];
   }
   if (text.includes('pm-kisan') || text.includes('kisan samman nidhi')) {
-    return [{ title: 'PM Kisan Samman Nidhi (PM-KISAN)', scheme_category: 'Agriculture & Farmer Welfare', agency: 'Ministry of Agriculture and Farmers Welfare', benefit_amount: 'Rs 6,000 per year', slug: 'pm-kisan' }];
+    return [{ title: 'PM Kisan Samman Nidhi (PM-KISAN)', scheme_category: 'Agriculture & Farmer Welfare', agency: 'Ministry of Agriculture and Farmers Welfare', benefit_amount: 'Rs 6,000 per year', slug: 'pm-kisan', official_url: 'https://www.myscheme.gov.in/schemes/pm-kisan' }];
   }
+  if (matched.length > 0) return matched;
   if (text.includes('pmfby') || text.includes('fasal bima')) {
     return [{ title: 'Pradhan Mantri Fasal Bima Yojana (PMFBY)', scheme_category: 'Crop Insurance', agency: 'Ministry of Agriculture', benefit_amount: 'Comprehensive Crop Insurance', slug: 'pmfby' }];
   }
