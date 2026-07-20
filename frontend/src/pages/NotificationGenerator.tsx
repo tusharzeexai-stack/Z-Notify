@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../context/DashboardContext';
 import { loadDistrictMap, resolveField } from '../utils/mappings';
 import { getActionLinks } from '../utils/actionLinks';
+import { saveScoringRun } from '../utils/scoringStorage';
 
 export const NotificationGenerator: React.FC = () => {
   const { token, users, generateNotifications, fetchNotifications, saveDrafts, changeView, jobs, schemes, services, medicalFacilities, fetchInventories } = useDashboard();
@@ -609,7 +610,7 @@ export const NotificationGenerator: React.FC = () => {
               {Object.keys(groupedNotifications).map((uid) => {
                 const citizenNotifs = groupedNotifications[uid];
                 const citizenName = getUserName(uid);
-                const scoringData = users.find(u => u.id === uid || u.uid === uid) || {};
+                const scoringData = users.find((u: any) => u.id === uid || u.uid === uid) || {};
                 
                 return (
                   <div key={uid} className="space-y-md border-l-4 border-primary pl-md">
