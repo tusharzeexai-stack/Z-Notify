@@ -56,18 +56,22 @@ export const getActionLinks = (
   const cat = (notif.category || '').toUpperCase();
   const title = (parsed.title || notif.title || '').toLowerCase();
   const msg = (parsed.message || notif.description || '').toLowerCase();
-  const occ = scoringData?.occupation || '';
-  const dist = (scoringData?.district || '').toLowerCase();
-  const state = scoringData?.state || '';
-  const loc = [scoringData?.district, state.split('/')[0]?.trim()].filter(Boolean).join(', ');
+  const rawOcc = scoringData?.occupation || scoringData?.Occupation || scoringData?.job_role || '';
+  const occ = rawOcc.toLowerCase().includes('not applicable') ? '' : rawOcc;
+  const dist = (scoringData?.district || scoringData?.District || '').toLowerCase();
+  const state = (scoringData?.state || scoringData?.State || '').toLowerCase();
+  const loc = [scoringData?.district || scoringData?.District, (state.split('/')[0] || '').trim()].filter(Boolean).join(', ');
+
+  const occLabel = occ || 'relevant';
+  const locLabel = loc || 'your area';
   
-  let kws = occ.toLowerCase().split(/[\s,]+/).filter(Boolean);
+  let kws = occ ? occ.toLowerCase().split(/[\s,]+/).filter(Boolean) : [];
   const textTokens = (title + ' ' + msg).toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').split(/\s+/).filter(w => w.length > 2 && !['new', 'job', 'alert', 'alert!', 'update', 'opportunities', 'eligible', 'claim', 'free', 'benefits', 'apply'].includes(w));
   kws = Array.from(new Set([...kws, ...textTokens]));
 
   // ── EMPLOYMENT ───────────────────────────────────────────────────────────
   if (cat.includes('EMPLOY') || cat.includes('JOB') || title.includes('job') || msg.includes('job')) {
-    const matched = matchItems(jobs, ['job_role_position','job_category','job_subcategory','occupation'], kws, dist, state, 1);
+    const matched = matchItems(jobs, ['job_role_position','job_category','job_subcategory','occupation'], kws, dist, state, 1, title, msg);
     return {
       type: 'job', label: 'Matched Jobs', icon: 'work',
       items: matched.map(j => ({
@@ -79,16 +83,16 @@ export const getActionLinks = (
         btnLabel: 'Apply Now'
       })),
       fallbacks: [
-        { label: `Search "${occ} jobs ${loc}" on Google Jobs`, url: `https://www.google.com/search?q=${encodeURIComponent(`${occ} jobs ${loc}`)}&ibp=htl;jobs`, color: 'bg-[#4285F4] text-white' },
-        { label: 'Search on NCS Portal (Govt. Job Board)', url: `https://www.ncs.gov.in/Pages/Search.aspx?searchText=${encodeURIComponent(occ)}&location=${encodeURIComponent(loc)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
+        { label: `Search "${occ || 'Job'} opportunities in ${locLabel}" on Google Jobs`, url: `https://www.google.com/search?q=${encodeURIComponent(`${occ || 'jobs'} ${locLabel}`)}&ibp=htl;jobs`, color: 'bg-[#4285F4] text-white' },
+        { label: 'Search on NCS Portal (Govt. Job Board)', url: `https://www.ncs.gov.in/Pages/Search.aspx?searchText=${encodeURIComponent(occ || 'jobs')}&location=${encodeURIComponent(loc)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
       ],
-      moreLabel: `Find more "${occ}" jobs`, moreUrl: buildGoogleUrl(`${occ} jobs ${loc}`)
+      moreLabel: `Find more "${occ || 'job'}" opportunities`, moreUrl: buildGoogleUrl(`${occ || 'job opening'} ${loc}`)
     };
   }
 
   // ── HEALTHCARE ───────────────────────────────────────────────────────────
   if (cat.includes('HEALTH') || cat.includes('MEDIC') || title.includes('health') || title.includes('hospital') || msg.includes('hospital')) {
-    const matched = matchItems(medicalFacilities, ['facility_name','facility_type','specialization'], ['hospital','clinic','health','medical','primary'], dist, state, 1);
+    const matched = matchItems(medicalFacilities, ['facility_name','facility_type','specialization'], ['hospital','clinic','health','medical','primary'], dist, state, 1, title, msg);
     return {
       type: 'health', label: 'Nearby Health Facilities', icon: 'local_hospital',
       items: matched.map(f => ({
@@ -122,7 +126,7 @@ export const getActionLinks = (
         btnLabel: 'Apply for Scheme'
       })),
       fallbacks: [
-        { label: `Find schemes for ${occ} on MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent(occ)}`, color: 'bg-[#1a73e8] text-white' },
+        { label: `Find schemes for ${occLabel} on MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent(occ || 'welfare')}`, color: 'bg-[#1a73e8] text-white' },
         { label: 'PM-KISAN / PM Schemes Portal', url: 'https://pmkisan.gov.in/', color: 'bg-primary/10 border border-primary/30 text-primary' },
       ],
       moreLabel: 'Browse all schemes on MyScheme', moreUrl: 'https://www.myscheme.gov.in/'
@@ -144,9 +148,9 @@ export const getActionLinks = (
         btnLabel: 'Claim Farmer Benefit'
       })),
       fallbacks: [
-        { label: `PM-KISAN scheme for farmers in ${loc}`, url: 'https://pmkisan.gov.in/', color: 'bg-green-600 text-white' },
-        { label: `Agri schemes for ${occ} — MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent('farmer '+occ)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
-        { label: `Search "${occ} agriculture support ${loc}"`, url: buildGoogleUrl(`${occ} agriculture scheme ${loc}`), color: 'bg-surface border border-outline-variant text-outline' },
+        { label: `PM-KISAN scheme for farmers in ${locLabel}`, url: 'https://pmkisan.gov.in/', color: 'bg-green-600 text-white' },
+        { label: `Agri schemes for ${occLabel} — MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent('farmer '+occ)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
+        { label: `Search "${occLabel} agriculture support ${locLabel}"`, url: buildGoogleUrl(`${occ} agriculture scheme ${loc}`), color: 'bg-surface border border-outline-variant text-outline' },
       ],
       moreLabel: 'Kisan Call Center: 1800-180-1551', moreUrl: 'tel:18001801551'
     };

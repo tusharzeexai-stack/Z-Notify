@@ -11,6 +11,7 @@ from typing import List
 router = APIRouter(tags=["rules-and-inventories"])
 
 admin_required = RoleChecker(["super-admin", "admin"])
+any_user = RoleChecker(["super-admin", "admin", "employee"])
 
 # --- Scoring Weights ---
 @router.get("/rules", response_model=RuleResponse)
@@ -74,7 +75,7 @@ def update_scoring_weights(
 
 # --- Welfare Schemes CRUD ---
 @router.get("/schemes", response_model=List[SchemeResponse])
-def get_schemes(db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
+def get_schemes(db: Session = Depends(get_db), current_user: User = Depends(any_user)):
     return db.query(Scheme).filter(Scheme.is_deleted == False).all()
 
 @router.post("/schemes", response_model=SchemeResponse)
@@ -97,7 +98,7 @@ def create_scheme(
 
 # --- Jobs CRUD ---
 @router.get("/jobs", response_model=List[JobResponse])
-def get_jobs(db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
+def get_jobs(db: Session = Depends(get_db), current_user: User = Depends(any_user)):
     return db.query(Job).filter(Job.is_deleted == False).all()
 
 @router.post("/jobs", response_model=JobResponse)
@@ -207,7 +208,7 @@ async def upload_jobs_excel(
 
 # --- Services CRUD ---
 @router.get("/services", response_model=List[ServiceResponse])
-def get_services(db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
+def get_services(db: Session = Depends(get_db), current_user: User = Depends(any_user)):
     return db.query(Service).filter(Service.is_deleted == False).all()
 
 @router.post("/services", response_model=ServiceResponse)
@@ -229,7 +230,7 @@ def create_service(
 
 # --- Medical Facilities CRUD ---
 @router.get("/medical-facilities", response_model=List[MedicalFacilityResponse])
-def get_facilities(db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
+def get_facilities(db: Session = Depends(get_db), current_user: User = Depends(any_user)):
     return db.query(MedicalFacility).filter(MedicalFacility.is_deleted == False).all()
 
 @router.post("/medical-facilities", response_model=MedicalFacilityResponse)

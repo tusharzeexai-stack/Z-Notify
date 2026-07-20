@@ -610,7 +610,20 @@ export const NotificationGenerator: React.FC = () => {
               {Object.keys(groupedNotifications).map((uid) => {
                 const citizenNotifs = groupedNotifications[uid];
                 const citizenName = getUserName(uid);
-                const scoringData = users.find((u: any) => u.id === uid || u.uid === uid) || {};
+                
+                const uFromContext = users.find((u: any) => String(u.id) === String(uid) || String(u.uid) === String(uid) || String(u.user_id) === String(uid) || String(u.id).substring(0, 8) === String(uid).substring(0, 8));
+                let savedRunUserData: any = {};
+                try {
+                  const savedRunsStr = localStorage.getItem('saved_scoring_runs');
+                  if (savedRunsStr) {
+                    const savedRuns = JSON.parse(savedRunsStr);
+                    if (savedRuns && savedRuns[0] && savedRuns[0].data) {
+                      const found = savedRuns[0].data.find((d: any) => String(d.user_id) === String(uid) || String(d.citizen_id) === String(uid) || String(d.id) === String(uid));
+                      if (found) savedRunUserData = found;
+                    }
+                  }
+                } catch (e) {}
+                const scoringData = { ...uFromContext, ...savedRunUserData };
                 
                 return (
                   <div key={uid} className="space-y-md border-l-4 border-primary pl-md">
