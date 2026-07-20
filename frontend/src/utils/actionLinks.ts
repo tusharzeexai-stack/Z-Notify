@@ -17,13 +17,13 @@ export const kwScore = (item: any, fields: string[], keywords: string[], title =
   const slug = (item.slug || '').toLowerCase();
   const haystack = fields.map(f => (item[f] || '').toLowerCase()).join(' ');
 
-  // Direct match bonuses
+  // Direct match bonuses (100 pts for exact text or acronym presence)
   if (name.length > 3 && (title.includes(name) || msg.includes(name))) {
-    s += 50;
+    s += 100;
   }
   const cleanName = name.replace(/\s*\([^)]*\)/g, '').trim();
   if (cleanName.length > 3 && (title.includes(cleanName) || msg.includes(cleanName))) {
-    s += 50;
+    s += 100;
   }
   // Name token overlap bonus
   const nameTokens = cleanName.split(/\s+/).filter((w: string) => w.length > 2);
@@ -32,17 +32,17 @@ export const kwScore = (item: any, fields: string[], keywords: string[], title =
     for (const t of nameTokens) {
       if (title.includes(t) || msg.includes(t)) matchedTokens++;
     }
-    if (matchedTokens / nameTokens.length >= 0.5) s += 30;
+    if (matchedTokens / nameTokens.length >= 0.5) s += 40;
   }
 
   if (slug.length > 2 && (title.includes(slug) || msg.includes(slug))) {
-    s += 50;
+    s += 100;
   }
   const acronymMatch = name.match(/\(([^)]+)\)/);
   if (acronymMatch && acronymMatch[1]) {
     const acro = acronymMatch[1].toLowerCase();
     if (acro.length >= 2 && (title.includes(acro) || msg.includes(acro))) {
-      s += 50;
+      s += 100;
     }
   }
 
@@ -71,8 +71,36 @@ export const getMySchemeUrl = (s: any) => {
   if (s.official_url) return s.official_url;
   if (s.application_url) return s.application_url;
   
-  const cleanTitle = titleStr.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const cleanTitle = titleStr.replace(/\s*\([^)]*\)/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return cleanTitle ? `https://www.myscheme.gov.in/schemes/${cleanTitle}` : 'https://www.myscheme.gov.in/';
+};
+
+export const ensureSchemeMatch = (matched: any[], title: string, msg: string) => {
+  if (matched.length > 0) return matched;
+  
+  const text = (title + ' ' + msg).toLowerCase();
+  if (text.includes('pm-kmy') || text.includes('kisan maan-dhan') || text.includes('maan-dhan yojana')) {
+    return [{ title: 'PM Kisan Maan-Dhan Yojana (PM-KMY)', scheme_category: 'Pension & Social Security', agency: 'Ministry of Agriculture and Farmers Welfare', benefit_amount: 'Rs 3,000 per month pension', slug: 'pm-kmy' }];
+  }
+  if (text.includes('pm-kisan') || text.includes('kisan samman nidhi')) {
+    return [{ title: 'PM Kisan Samman Nidhi (PM-KISAN)', scheme_category: 'Agriculture & Farmer Welfare', agency: 'Ministry of Agriculture and Farmers Welfare', benefit_amount: 'Rs 6,000 per year', slug: 'pm-kisan' }];
+  }
+  if (text.includes('pmfby') || text.includes('fasal bima')) {
+    return [{ title: 'Pradhan Mantri Fasal Bima Yojana (PMFBY)', scheme_category: 'Crop Insurance', agency: 'Ministry of Agriculture', benefit_amount: 'Comprehensive Crop Insurance', slug: 'pmfby' }];
+  }
+  if (text.includes('kcc') || text.includes('kisan credit card')) {
+    return [{ title: 'Kisan Credit Card (KCC)', scheme_category: 'Agriculture Credit', agency: 'Ministry of Agriculture', benefit_amount: 'Subsidized Agriculture Loans', slug: 'kcc' }];
+  }
+  if (text.includes('pmay') || text.includes('awas yojana')) {
+    return [{ title: 'Pradhan Mantri Awas Yojana (PMAY)', scheme_category: 'Housing & Urban Poverty', agency: 'Ministry of Housing and Urban Affairs', slug: 'pmay' }];
+  }
+  if (text.includes('pm-jay') || text.includes('ayushman') || text.includes('jan arogya')) {
+    return [{ title: 'Ayushman Bharat PM-JAY', scheme_category: 'Healthcare Insurance', agency: 'National Health Authority', benefit_amount: 'Rs 5 Lakh Cover per family/yr', slug: 'pm-jay' }];
+  }
+  if (text.includes('mudra') || text.includes('pmmy')) {
+    return [{ title: 'Pradhan Mantri Mudra Yojana (PMMY)', scheme_category: 'MSME Loans', agency: 'Ministry of Finance', slug: 'pmmy' }];
+  }
+  return matched;
 };
 
 export const getActionLinks = (
@@ -126,7 +154,8 @@ export const getActionLinks = (
   // ── AGRICULTURE SCHEMES (Prioritized before generic SCHEMES) ─────────────
   if (cat.includes('AGRI') || cat.includes('FARM') || cat.includes('KISAN') || title.includes('farm') || msg.includes('farm') || msg.includes('kisan') || msg.includes('pm-kisan') || msg.includes('pm-kmy')) {
     const agriKws = [...kws, 'kisan', 'farmer', 'agriculture', 'krishi', 'crop', 'maan-dhan'];
-    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description','tags'], agriKws, dist, state, 1, title, msg);
+    let matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description','tags'], agriKws, dist, state, 1, title, msg);
+    matched = ensureSchemeMatch(matched, title, msg);
     return {
       type: 'scheme', label: 'Farmer Scheme Update', icon: 'agriculture',
       items: matched.map(s => ({
@@ -148,7 +177,8 @@ export const getActionLinks = (
   // ── GENERAL SCHEMES ──────────────────────────────────────────────────────
   if (cat.includes('SCHEME') || cat.includes('BENEFIT') || cat.includes('WELFARE') || title.includes('scheme') || msg.includes('scheme') || msg.includes('yojana')) {
     const schemeKws = [...kws, 'scheme', 'yojana', 'benefit'];
-    const matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description'], schemeKws, dist, state, 1, title, msg);
+    let matched = matchItems(schemes, ['scheme_name','title','scheme_category','agency','description'], schemeKws, dist, state, 1, title, msg);
+    matched = ensureSchemeMatch(matched, title, msg);
     return {
       type: 'scheme', label: 'Matching Schemes', icon: 'policy',
       items: matched.map(s => ({
