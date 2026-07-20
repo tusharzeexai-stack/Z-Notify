@@ -4,7 +4,7 @@ import { getScoringRuns } from '../utils/scoringStorage';
 
 
 export const GeneratedNotifications: React.FC = () => {
-  const { fetchSavedGenerations, sendToReview, deleteSavedGenerations } = useDashboard();
+  const { fetchSavedGenerations, sendToReview, deleteSavedGenerations, jobs, fetchInventories } = useDashboard();
   const [msg, setMsg] = useState('');
   const [savedGens, setSavedGens] = useState<any[]>([]);
   const [viewNotifsModal, setViewNotifsModal] = useState<any | null>(null);
@@ -62,11 +62,49 @@ export const GeneratedNotifications: React.FC = () => {
   useEffect(() => {
     loadSavedGens();
     getScoringRuns().then(setSavedRuns).catch(console.error);
+    fetchInventories();
     
     // Load cohort generations from localStorage
     const savedCohorts = JSON.parse(localStorage.getItem('hpns_saved_cohort_gens') || '[]');
     setCohortGens(savedCohorts);
   }, []);
+
+  // Find jobs matching user's occupation + location from our database
+  const findMatchingJobs = (scoringData: any, maxResults = 3): any[] => {
+    if (!jobs || jobs.length === 0) return [];
+    const occ = (scoringData?.occupation || '').toLowerCase();
+    const dist = (scoringData?.district || '').toLowerCase();
+    const state = (scoringData?.state || '').toLowerCase();
+
+    // Score each job by how well it matches
+    const scored = jobs.map((j: any) => {
+      let score = 0;
+      const jRole = (j.job_role_position || '').toLowerCase();
+      const jCat = (j.job_category || '').toLowerCase();
+      const jSubCat = (j.job_subcategory || '').toLowerCase();
+      const jOcc = (j.occupation || '').toLowerCase();
+      const jDist = (j.district || '').toLowerCase();
+      const jState = (j.state || '').toLowerCase();
+      const jCity = (j.city || '').toLowerCase();
+
+      // Occupation matching
+      const occWords = occ.split(/[\s,]+/).filter(Boolean);
+      for (const w of occWords) {
+        if (w.length > 2 && (jRole.includes(w) || jCat.includes(w) || jSubCat.includes(w) || jOcc.includes(w))) score += 3;
+      }
+      // Location matching
+      if (dist && (jDist.includes(dist) || jCity.includes(dist))) score += 5;
+      if (state && jState.includes(state.split('/')[0].trim())) score += 2;
+
+      return { job: j, score };
+    });
+
+    return scored
+      .filter(s => s.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxResults)
+      .map(s => s.job);
+  };
 
   const loadSavedGens = async () => {
     const gens = await fetchSavedGenerations();
@@ -385,15 +423,59 @@ export const GeneratedNotifications: React.FC = () => {
                             </div>
                           </div>
 
-                          {parsed.portal_link && (
-                            <div 
-                              onClick={() => window.open(parsed.portal_link.startsWith('http') ? parsed.portal_link : `https://${parsed.portal_link}`, '_blank')}
-                              className="flex items-center gap-xs text-[13px] font-bold text-primary hover:underline cursor-pointer pb-xs"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">link</span>
-                              <span>Apply here: {parsed.portal_link}</span>
-                            </div>
-                          )}
+                          {/* Job Matches from our database for EMPLOYMENT notifications */}
+                          {(() => {
+                            const isJobNotif = (notif.category || '').toUpperCase().includes('EMPLOY') ||
+                              (notif.category || '').toUpperCase().includes('JOB') ||
+                              (parsed.title || notif.title || '').toLowerCase().includes('job') ||
+                              (parsed.message || '').toLowerCase().includes('job');
+                            if (!isJobNotif) return null;
+                            const matchedJobs = findMatchingJobs(scoringData);
+                            if (matchedJobs.length === 0) return (
+                              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-md">
+                                <p className="text-amber-400 text-[12px] font-bold flex items-center gap-xs">
+                                  <span className="material-symbols-outlined text-[16px]">info</span>
+                                  No matching jobs found in database for this user's profile &amp; location.
+                                </p>
+                              </div>
+                            );
+                            return (
+                              <div className="space-y-sm">
+                                <h5 className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center gap-xs">
+                                  <span className="material-symbols-outlined text-[14px] text-primary">work</span>
+                                  Matched Jobs from Database ({matchedJobs.length})
+                                </h5>
+                                {matchedJobs.map((j: any, ji: number) => (
+                                  <div key={ji} className="bg-surface border border-outline-variant rounded-lg p-md space-y-xs hover:border-primary/50 transition-colors">
+                                    <div className="flex justify-between items-start gap-xs">
+                                      <div>
+                                        <p className="font-bold text-on-surface text-[13px]">{j.job_role_position || 'Job Opening'}</p>
+                                        <p className="text-outline text-[11px] font-semibold">{j.name_of_company_person || 'Company'}</p>
+                                      </div>
+                                      <span className="text-[9px] font-bold px-xs py-[1px] bg-primary/10 text-primary border border-primary/20 rounded uppercase whitespace-nowrap">
+                                        {j.job_type || 'VACANCY'}
+                                      </span>
+                                    </div>
+                                    <div className="flex flex-wrap gap-xs text-[11px]">
+                                      {(j.district || j.city) && <span className="flex items-center gap-[2px] text-outline"><span className="material-symbols-outlined text-[13px]">location_on</span>{j.district || j.city}{j.state ? `, ${j.state}` : ''}</span>}
+                                      {j.salary_range && <span className="flex items-center gap-[2px] text-emerald-400 font-bold"><span className="material-symbols-outlined text-[13px]">payments</span>{j.salary_range}</span>}
+                                      {j.exp_required && <span className="text-outline">Exp: {j.exp_required}</span>}
+                                    </div>
+                                    <button
+                                      onClick={() => {
+                                        const url = j.job_url || `mailto:${j.job_contact_email}`;
+                                        if (url) window.open(url.startsWith('http') ? url : `https://${url}`, '_blank');
+                                      }}
+                                      className="w-full mt-xs bg-primary text-on-primary text-[12px] font-bold py-xs rounded-md hover:opacity-90 transition-all cursor-pointer flex items-center justify-center gap-xs"
+                                    >
+                                      <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+                                      Apply Now
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
 
                           {parsed.why_bullets && Array.isArray(parsed.why_bullets) && parsed.why_bullets.length > 0 && (
                             <div className="bg-surface-container-high p-md rounded-lg border border-outline-variant/50 space-y-xs">
