@@ -11,13 +11,16 @@ logger = logging.getLogger(__name__)
 
 def _format_db_scheme(s: SchemeModel) -> Dict[str, Any]:
     """Formats a DB SchemeModel object into a standardized scheme dictionary."""
+    url = s.official_url or s.source_url or "https://www.myscheme.gov.in"
+    if "pm-kmy" in url:
+        url = url.replace("/schemes/pm-kmy", "/schemes/pmkmy").replace("pm-kmy", "pmkmy")
     return {
         "id": str(s.id),
         "scheme_name": s.scheme_name or s.title or "Welfare Scheme",
         "description": (s.description or s.benefit_details or "")[:300],
         "benefits": (s.benefits or s.benefit_details or "Financial assistance and welfare subsidies")[:250],
         "eligibility": (s.eligibility or s.eligibility_criteria or "Resident citizen")[:250],
-        "official_url": s.official_url or s.source_url or "https://www.myscheme.gov.in",
+        "official_url": url,
         "agency": s.agency or s.ministry or s.department or "Government Portal",
         "state": s.state or "All India",
         "source_type": "LOCAL_DATABASE"

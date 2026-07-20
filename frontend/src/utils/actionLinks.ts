@@ -57,20 +57,50 @@ export const matchItems = (list: any[], kwFields: string[], kws: string[], dist:
     .filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, n).map(x => x.i);
 
 export const getMySchemeUrl = (s: any) => {
-  if (s.slug) return `https://www.myscheme.gov.in/schemes/${s.slug}`;
-  if (s.official_url && s.official_url.includes('myscheme.gov.in')) return s.official_url;
-  if (s.application_url && s.application_url.includes('myscheme.gov.in')) return s.application_url;
-  if (s.source_url && s.source_url.includes('myscheme.gov.in')) return s.source_url;
-  
   const titleStr = (s.scheme_name || s.title || '').toLowerCase();
-  if (titleStr.includes('pm-kisan') || titleStr.includes('kisan samman nidhi')) return 'https://www.myscheme.gov.in/schemes/pm-kisan';
-  if (titleStr.includes('pm-kmy') || titleStr.includes('pmkmy') || titleStr.includes('kisan maan-dhan') || titleStr.includes('maan-dhan yojana')) return 'https://www.myscheme.gov.in/schemes/pmkmy';
-  if (titleStr.includes('pmfby') || titleStr.includes('fasal bima')) return 'https://www.myscheme.gov.in/schemes/pmfby';
-  if (titleStr.includes('kcc') || titleStr.includes('kisan credit card')) return 'https://www.myscheme.gov.in/schemes/kcc';
   
-  if (s.official_url) return s.official_url;
-  if (s.application_url) return s.application_url;
+  // High-priority exact scheme slug overrides to guarantee no 404s
+  if (titleStr.includes('pm-kmy') || titleStr.includes('pmkmy') || titleStr.includes('kisan maan-dhan') || titleStr.includes('maan-dhan yojana')) {
+    return 'https://www.myscheme.gov.in/schemes/pmkmy';
+  }
+  if (titleStr.includes('pm-kisan') || titleStr.includes('kisan samman nidhi')) {
+    return 'https://www.myscheme.gov.in/schemes/pm-kisan';
+  }
+  if (titleStr.includes('pmfby') || titleStr.includes('fasal bima')) {
+    return 'https://www.myscheme.gov.in/schemes/pmfby';
+  }
+  if (titleStr.includes('kcc') || titleStr.includes('kisan credit card')) {
+    return 'https://www.myscheme.gov.in/schemes/kcc';
+  }
+  if (titleStr.includes('pmay') || titleStr.includes('awas yojana')) {
+    return 'https://www.myscheme.gov.in/schemes/pmay-u';
+  }
+  if (titleStr.includes('pm-jay') || titleStr.includes('ayushman') || titleStr.includes('jan arogya')) {
+    return 'https://www.myscheme.gov.in/schemes/pm-jay';
+  }
+  if (titleStr.includes('mudra') || titleStr.includes('pmmy')) {
+    return 'https://www.myscheme.gov.in/schemes/pmmy';
+  }
+
+  let url = '';
+  if (s.slug) {
+    url = `https://www.myscheme.gov.in/schemes/${s.slug}`;
+  } else if (s.official_url && s.official_url.includes('myscheme.gov.in')) {
+    url = s.official_url;
+  } else if (s.application_url && s.application_url.includes('myscheme.gov.in')) {
+    url = s.application_url;
+  } else if (s.source_url && s.source_url.includes('myscheme.gov.in')) {
+    url = s.source_url;
+  } else if (s.official_url) {
+    url = s.official_url;
+  } else if (s.application_url) {
+    url = s.application_url;
+  }
   
+  if (url) {
+    return url.replace(/\/schemes\/pm-kmy\b/gi, '/schemes/pmkmy');
+  }
+
   const cleanTitle = titleStr.replace(/\s*\([^)]*\)/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
   return cleanTitle ? `https://www.myscheme.gov.in/schemes/${cleanTitle}` : 'https://www.myscheme.gov.in/';
 };
@@ -133,6 +163,13 @@ export const getActionLinks = (
   // ── EMPLOYMENT ───────────────────────────────────────────────────────────
   if (cat.includes('EMPLOY') || cat.includes('JOB') || title.includes('job') || msg.includes('job') || msg.includes('carpenter') || msg.includes('consultant')) {
     const matched = matchItems(jobs, ['job_role_position','job_category','job_subcategory','occupation'], kws, dist, state, 1, title, msg);
+    
+    // Extract job title and location from matched job or notification text for precise search URLs
+    const matchedJob = matched[0];
+    const jobRoleName = matchedJob?.job_role_position || matchedJob?.occupation || (msg.includes('carpenter') ? 'Carpenter' : (msg.includes('data entry') ? 'Data Entry Operator' : (occ || 'jobs')));
+    const jobLocName = matchedJob?.district || matchedJob?.city || matchedJob?.state || dist || loc || 'Thane';
+    const ncsSearchUrl = `https://www.ncs.gov.in/Pages/Search.aspx?searchText=${encodeURIComponent(jobRoleName)}&location=${encodeURIComponent(jobLocName)}`;
+
     return {
       type: 'job', label: 'Matched Jobs', icon: 'work',
       items: matched.map(j => ({
@@ -140,14 +177,14 @@ export const getActionLinks = (
         sub: j.name_of_company_person || '',
         badge: j.job_type || 'VACANCY',
         meta: [`${j.district || j.city || ''}${j.state ? ', '+j.state : ''}`, j.salary_range, j.exp_required ? `Exp: ${j.exp_required}` : ''].filter(Boolean),
-        url: j.job_url || j.official_url || (j.job_contact_email ? `mailto:${j.job_contact_email}` : null),
+        url: j.job_url || j.official_url || (j.job_contact_email ? `mailto:${j.job_contact_email}` : ncsSearchUrl),
         btnLabel: 'Apply Now'
       })),
       fallbacks: [
-        { label: `Search "${occ || 'Job'} opportunities in ${locLabel}" on Google Jobs`, url: `https://www.google.com/search?q=${encodeURIComponent(`${occ || 'jobs'} ${locLabel}`)}&ibp=htl;jobs`, color: 'bg-[#4285F4] text-white' },
-        { label: 'Search on NCS Portal (Govt. Job Board)', url: `https://www.ncs.gov.in/Pages/Search.aspx?searchText=${encodeURIComponent(occ || 'jobs')}&location=${encodeURIComponent(loc)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
+        { label: `Search "${jobRoleName} opportunities in ${jobLocName}" on Google Jobs`, url: `https://www.google.com/search?q=${encodeURIComponent(`${jobRoleName} jobs ${jobLocName}`)}&ibp=htl;jobs`, color: 'bg-[#4285F4] text-white' },
+        { label: 'Search on NCS Portal (Govt. Job Board)', url: ncsSearchUrl, color: 'bg-primary/10 border border-primary/30 text-primary' },
       ],
-      moreLabel: `Find more "${occ || 'job'}" opportunities`, moreUrl: buildGoogleUrl(`${occ || 'job opening'} ${loc}`)
+      moreLabel: `Find more "${jobRoleName}" opportunities`, moreUrl: buildGoogleUrl(`${jobRoleName} job opening ${jobLocName}`)
     };
   }
 
