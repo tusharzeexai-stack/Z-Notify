@@ -64,7 +64,7 @@ export const getMySchemeUrl = (s: any) => {
   
   const titleStr = (s.scheme_name || s.title || '').toLowerCase();
   if (titleStr.includes('pm-kisan') || titleStr.includes('kisan samman nidhi')) return 'https://www.myscheme.gov.in/schemes/pm-kisan';
-  if (titleStr.includes('pm-kmy') || titleStr.includes('kisan maan-dhan')) return 'https://www.myscheme.gov.in/schemes/pm-kmy';
+  if (titleStr.includes('pm-kmy') || titleStr.includes('pmkmy') || titleStr.includes('kisan maan-dhan') || titleStr.includes('maan-dhan yojana')) return 'https://www.myscheme.gov.in/schemes/pmkmy';
   if (titleStr.includes('pmfby') || titleStr.includes('fasal bima')) return 'https://www.myscheme.gov.in/schemes/pmfby';
   if (titleStr.includes('kcc') || titleStr.includes('kisan credit card')) return 'https://www.myscheme.gov.in/schemes/kcc';
   
@@ -79,8 +79,8 @@ export const ensureSchemeMatch = (matched: any[], title: string, msg: string) =>
   if (matched.length > 0) return matched;
   
   const text = (title + ' ' + msg).toLowerCase();
-  if (text.includes('pm-kmy') || text.includes('kisan maan-dhan') || text.includes('maan-dhan yojana')) {
-    return [{ title: 'PM Kisan Maan-Dhan Yojana (PM-KMY)', scheme_category: 'Pension & Social Security', agency: 'Ministry of Agriculture and Farmers Welfare', benefit_amount: 'Rs 3,000 per month pension', slug: 'pm-kmy' }];
+  if (text.includes('pm-kmy') || text.includes('pmkmy') || text.includes('kisan maan-dhan') || text.includes('maan-dhan yojana')) {
+    return [{ title: 'PM Kisan Maan-Dhan Yojana (PM-KMY)', scheme_category: 'Pension & Social Security', agency: 'Ministry of Agriculture and Farmers Welfare', benefit_amount: 'Rs 3,000 per month pension', slug: 'pmkmy', official_url: 'https://www.myscheme.gov.in/schemes/pmkmy' }];
   }
   if (text.includes('pm-kisan') || text.includes('kisan samman nidhi')) {
     return [{ title: 'PM Kisan Samman Nidhi (PM-KISAN)', scheme_category: 'Agriculture & Farmer Welfare', agency: 'Ministry of Agriculture and Farmers Welfare', benefit_amount: 'Rs 6,000 per year', slug: 'pm-kisan' }];

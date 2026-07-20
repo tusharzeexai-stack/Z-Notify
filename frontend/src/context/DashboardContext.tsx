@@ -102,6 +102,7 @@ export interface SchemeItem {
   application_url?: string;
   scheme_category?: string;
   benefit_amount?: string;
+  slug?: string;
   state?: string;
   district?: string;
 }
@@ -257,8 +258,9 @@ const DEFAULT_SCHEMES: SchemeItem[] = [
     scheme_name: 'PM Kisan Maan-Dhan Yojana (PM-KMY)',
     title: 'PM Kisan Maan-Dhan Yojana (PM-KMY)',
     description: 'Pension scheme for small and marginal farmers providing Rs 3,000 monthly pension.',
-    official_url: 'https://www.myscheme.gov.in/schemes/pm-kmy',
-    application_url: 'https://www.myscheme.gov.in/schemes/pm-kmy',
+    official_url: 'https://www.myscheme.gov.in/schemes/pmkmy',
+    application_url: 'https://www.myscheme.gov.in/schemes/pmkmy',
+    slug: 'pmkmy',
     scheme_category: 'Pension & Social Security',
     agency: 'Ministry of Agriculture and Farmers Welfare',
     benefit_amount: 'Rs 3,000 per month',
