@@ -114,8 +114,9 @@ class SyncService:
                                 continue
 
                         try:
-                            # Use fast metadata parser directly from v6 search engine result
-                            parsed_scheme = scheme_parser.parse_from_meta(item, cat.id, cat.slug)
+                            # Fetch actual scheme details instead of fallback dummy text
+                            raw_data = await crawler_instance.fetch_scheme_details_page(scheme_url)
+                            parsed_scheme = await scheme_parser.parse_scheme_page(raw_data, cat.id, cat.slug, meta=item)
 
                             # Save to Database
                             _, is_new = scheme_repository.upsert_scheme(db, parsed_scheme)

@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
+import pandas as pd
+import io
 from app.core.database import get_db
 from app.core.security import RoleChecker
 from app.models.all_models import User, EligibilityRule, Scheme, Job, Service, MedicalFacility, AuditLog
@@ -105,17 +107,103 @@ def create_job(
     current_user: User = Depends(admin_required)
 ):
     job = Job(
-        title=job_in.title,
-        description=job_in.description,
-        department=job_in.department,
-        salary=job_in.salary,
-        location=job_in.location,
-        eligibility_criteria=job_in.eligibility_criteria
+        sl_no=job_in.sl_no,
+        job_type=job_in.job_type,
+        job_category=job_in.job_category,
+        job_subcategory=job_in.job_subcategory,
+        education_qualification=job_in.education_qualification,
+        occupation=job_in.occupation,
+        job_role_position=job_in.job_role_position,
+        name_of_company_person=job_in.name_of_company_person,
+        salary_range=job_in.salary_range,
+        state=job_in.state,
+        city=job_in.city,
+        district=job_in.district,
+        exp_required=job_in.exp_required,
+        job_contact_number=job_in.job_contact_number,
+        job_contact_email=job_in.job_contact_email,
+        job_url=job_in.job_url,
+        mode_of_contact=job_in.mode_of_contact,
+        expiry_date=job_in.expiry_date,
+        user_id_ref=job_in.user_id_ref,
+        status=job_in.status,
+        reason_for_rejection=job_in.reason_for_rejection
     )
     db.add(job)
     db.commit()
     db.refresh(job)
     return job
+
+@router.post("/jobs/upload")
+async def upload_jobs_excel(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_required)
+):
+    if not file.filename.endswith((".xls", ".xlsx")):
+        raise HTTPException(status_code=400, detail="Only Excel files (.xls or .xlsx) are supported.")
+        
+    try:
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+        
+        # We need exact column mapping. Keep original column names if possible.
+        added_count = 0
+        skipped_count = 0
+        
+        for index, row in df.iterrows():
+            # Filter approved status
+            status_val = str(row.get("Status", "")).strip().lower()
+            if "approved" not in status_val:
+                skipped_count += 1
+                continue
+                
+            sl_no = str(row.get("Sl. No.", "")).strip()
+            if not sl_no or sl_no == "nan":
+                import uuid
+                sl_no = str(uuid.uuid4())
+                
+            # Deduplication
+            exists = db.query(Job).filter(Job.sl_no == sl_no).first()
+            if exists:
+                skipped_count += 1
+                continue
+                
+            def safe_str(val):
+                s = str(val).strip()
+                return s if s != "nan" else None
+                
+            job = Job(
+                sl_no=sl_no,
+                job_type=safe_str(row.get("Job Type")),
+                job_category=safe_str(row.get("Job Category")),
+                job_subcategory=safe_str(row.get("Job Subcategory")),
+                education_qualification=safe_str(row.get("Education Qualification")),
+                occupation=safe_str(row.get("Occupation")),
+                job_role_position=safe_str(row.get("Job Role / Position")),
+                name_of_company_person=safe_str(row.get("Name of Company / Person")),
+                salary_range=safe_str(row.get("Salary Range")),
+                state=safe_str(row.get("State")),
+                city=safe_str(row.get("City")),
+                district=safe_str(row.get("District")),
+                exp_required=safe_str(row.get("Exp. Required")),
+                job_contact_number=safe_str(row.get("Job Contact Number")),
+                job_contact_email=safe_str(row.get("Job Contact Email")),
+                job_url=safe_str(row.get("Job Url")),
+                mode_of_contact=safe_str(row.get("Mode Of Contact")),
+                expiry_date=safe_str(row.get("Expiry Date")),
+                user_id_ref=safe_str(row.get("User Id")),
+                status=safe_str(row.get("Status")),
+                reason_for_rejection=safe_str(row.get("Reason for Rejection"))
+            )
+            db.add(job)
+            added_count += 1
+            
+        db.commit()
+        return {"status": "success", "added": added_count, "skipped": skipped_count}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing Excel file: {str(e)}")
 
 # --- Services CRUD ---
 @router.get("/services", response_model=List[ServiceResponse])

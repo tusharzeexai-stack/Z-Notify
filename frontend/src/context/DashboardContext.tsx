@@ -46,7 +46,8 @@ export type ViewType =
   | 'medical-facilities'
   | 'audit-logs'
   | 'analytics'
-  | 'cohorts';
+  | 'cohorts'
+  | 'generated-notifications';
 
 export interface NotificationItem {
   id: string;
@@ -100,12 +101,27 @@ export interface SchemeItem {
 
 export interface JobItem {
   id: string;
-  title: string;
-  description: string;
-  department: string;
-  salary?: string;
-  location?: string;
-  eligibility_criteria: any;
+  sl_no: string;
+  job_type?: string;
+  job_category?: string;
+  job_subcategory?: string;
+  education_qualification?: string;
+  occupation?: string;
+  job_role_position?: string;
+  name_of_company_person?: string;
+  salary_range?: string;
+  state?: string;
+  city?: string;
+  district?: string;
+  exp_required?: string;
+  job_contact_number?: string;
+  job_contact_email?: string;
+  job_url?: string;
+  mode_of_contact?: string;
+  expiry_date?: string;
+  user_id_ref?: string;
+  status?: string;
+  reason_for_rejection?: string;
 }
 
 export interface ServiceItem {
@@ -198,6 +214,7 @@ interface DashboardContextType {
   
   createScheme: (item: any) => Promise<boolean>;
   createJob: (item: any) => Promise<boolean>;
+  uploadJobsExcel: (file: File) => Promise<{added: number, skipped: number} | null>;
   createService: (item: any) => Promise<boolean>;
   createFacility: (item: any) => Promise<boolean>;
   updateUserProfile: (userId: string, data: any) => Promise<boolean>;
@@ -676,6 +693,30 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   };
 
+  const uploadJobsExcel = async (file: File): Promise<{added: number, skipped: number} | null> => {
+    if (!token) return null;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await fetch(`${API_BASE}/jobs/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // Note: don't set Content-Type for FormData, browser will set multipart/form-data boundary automatically
+        },
+        body: formData
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      return null;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
   const createService = async (item: any): Promise<boolean> => {
     if (!token) return false;
     try {
@@ -862,6 +903,7 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         
         createScheme,
         createJob,
+        uploadJobsExcel,
         createService,
         createFacility,
         updateUserProfile,

@@ -8,19 +8,9 @@ import { loadDistrictMap, resolveField } from '../utils/mappings';
 
 
 export const Users: React.FC = () => {
-  const { fetchUsers, fetchSavedGenerations, sendToReview, deleteSavedGenerations } = useDashboard();
+  const { fetchUsers } = useDashboard();
   const [msg, setMsg] = useState('');
 
-  // Tab State: 'runs' or 'saved_generations'
-  const [activeTab, setActiveTab] = useState<'runs' | 'saved_generations'>(() => {
-    const defaultTab = localStorage.getItem('hpns_default_tab');
-    if (defaultTab === 'runs' || defaultTab === 'saved_generations') {
-      localStorage.removeItem('hpns_default_tab');
-      return defaultTab;
-    }
-    return 'saved_generations';
-  });
-  
   // Saved Runs State
   const [savedRuns, setSavedRuns] = useState<any[]>([]);
   const [selectedRun, setSelectedRun] = useState<any | null>(null);
@@ -40,9 +30,6 @@ export const Users: React.FC = () => {
     });
     return Array.from(occs).sort();
   }, [selectedRun]);
-
-  const [savedGens, setSavedGens] = useState<any[]>([]);
-  const [viewNotifsModal, setViewNotifsModal] = useState<any | null>(null);
 
   const cleanCode = (val: any, type: 'marital' | 'education' | 'house' | 'caste'): string => {
     if (!val) return 'N/A';
@@ -127,37 +114,8 @@ export const Users: React.FC = () => {
   useEffect(() => {
     fetchUsers();
     loadSavedRuns();
-    loadSavedGens();
     loadDistrictMap();
   }, []);
-
-  const loadSavedGens = async () => {
-    const gens = await fetchSavedGenerations();
-    setSavedGens(gens);
-  };
-
-  const handleSendToReview = async (userId: string) => {
-    const ok = await sendToReview(userId);
-    if (ok) {
-      setMsg('Notifications sent to Admin Review Queue!');
-      loadSavedGens();
-    } else {
-      setMsg('Failed to send notifications to review.');
-    }
-    setTimeout(() => setMsg(''), 4000);
-  };
-
-  const handleDeleteDrafts = async (userId: string) => {
-    if (!window.confirm("Are you sure you want to delete the generated notifications for this user?")) return;
-    const ok = await deleteSavedGenerations(userId);
-    if (ok) {
-      setMsg('Notifications deleted successfully.');
-      loadSavedGens();
-    } else {
-      setMsg('Failed to delete notifications.');
-    }
-    setTimeout(() => setMsg(''), 4000);
-  };
 
   const loadSavedRuns = async () => {
     try {
@@ -418,30 +376,6 @@ export const Users: React.FC = () => {
           {msg}
         </div>
       )}
-
-      {/* Tabs Menu */}
-      <div className="flex border-b border-outline-variant gap-md">
-        <button
-          onClick={() => { setActiveTab('runs'); setSelectedRun(null); }}
-          className={`pb-sm font-bold text-body-md transition-all border-b-2 cursor-pointer ${
-            activeTab === 'runs' || selectedRun
-              ? 'border-primary text-primary' 
-              : 'border-transparent text-outline hover:text-on-surface'
-          }`}
-        >
-          📂 Saved Scoring Runs ({savedRuns.length})
-        </button>
-        <button
-          onClick={() => { setActiveTab('saved_generations'); setSelectedRun(null); }}
-          className={`pb-sm font-bold text-body-md transition-all border-b-2 cursor-pointer ${
-            activeTab === 'saved_generations'
-              ? 'border-primary text-primary' 
-              : 'border-transparent text-outline hover:text-on-surface'
-          }`}
-        >
-          🗄️ Saved Generations ({savedGens.length})
-        </button>
-      </div>
 
       {selectedRun ? (
         /* Saved Table Detailed View */
@@ -713,8 +647,7 @@ export const Users: React.FC = () => {
             </div>
           </div>
         </div>
-      ) : activeTab === 'runs' ? (
-        /* Saved Runs list view */
+      ) : (
         <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden p-md space-y-md">
           {savedRuns.length === 0 ? (
             <div className="text-center p-xl text-outline font-bold">
@@ -751,337 +684,6 @@ export const Users: React.FC = () => {
               ))}
             </div>
           )}
-        </div>
-      ) : activeTab === 'saved_generations' ? (
-        <div className="bg-surface-container border border-outline-variant rounded-xl overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-surface-container-high border-b border-outline-variant">
-                <th className="p-md font-label-md text-outline uppercase font-bold">Name</th>
-                <th className="p-md font-label-md text-outline uppercase font-bold">User ID</th>
-                <th className="p-md font-label-md text-outline uppercase font-bold">Age</th>
-                <th className="p-md font-label-md text-outline uppercase font-bold">Generated Notifications</th>
-                <th className="p-md font-label-md text-outline uppercase font-bold">Status</th>
-                <th className="p-md font-label-md text-outline uppercase font-bold">View</th>
-                <th className="p-md font-label-md text-outline uppercase font-bold text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/50">
-              {savedGens.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="p-xl text-center text-outline font-medium">
-                    No saved generations found. Go to Notification Generator to create and save drafts.
-                  </td>
-                </tr>
-              ) : (
-                savedGens.map((gen: any) => (
-                  <tr key={gen.user_id} className="hover:bg-surface-container-high/50 transition-colors">
-                    <td className="p-md font-bold text-on-surface">{gen.name}</td>
-                    <td className="p-md text-[11px] text-outline font-mono-code">{gen.user_id}</td>
-                    <td className="p-md text-on-surface-variant font-medium">{gen.age || 'N/A'}</td>
-                    <td className="p-md text-on-surface-variant font-medium">{gen.notifications_count}</td>
-                    <td className="p-md">
-                      {gen.status === 'SAVED' && (
-                        <span className="px-sm py-xs bg-surface-container-low border border-outline-variant text-[11px] font-bold rounded uppercase text-on-surface">
-                          SAVED DRAFT
-                        </span>
-                      )}
-                      {gen.status === 'PENDING_REVIEW' && (
-                        <span className="px-sm py-xs bg-secondary/20 text-secondary border border-secondary/30 text-[11px] font-bold rounded uppercase">
-                          PENDING
-                        </span>
-                      )}
-                      {gen.status === 'FLAGGED' && (
-                        <span className="px-sm py-xs bg-error/20 text-error border border-error/30 text-[11px] font-bold rounded uppercase flex items-center gap-xs w-max">
-                          <span className="material-symbols-outlined text-[14px]">flag</span>
-                          FLAGGED BY ADMIN
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-md">
-                      <button
-                        onClick={() => setViewNotifsModal(gen)}
-                        className="text-primary font-label-sm font-bold uppercase hover:underline cursor-pointer"
-                      >
-                        View Notifs
-                      </button>
-                    </td>
-                    <td className="p-md text-right">
-                      <div className="flex items-center justify-end gap-sm">
-                        {gen.status === 'SAVED' ? (
-                          <button
-                            onClick={() => handleSendToReview(gen.user_id)}
-                            className="bg-primary text-on-primary px-md py-sm rounded text-[12px] font-bold hover:opacity-90 transition-all flex items-center justify-center gap-xs cursor-pointer"
-                          >
-                            <span className="material-symbols-outlined text-[16px]">send</span>
-                            Send to Admin
-                          </button>
-                        ) : (
-                          <span className="text-outline text-[12px] font-bold italic">
-                            Already Sent
-                          </span>
-                        )}
-                        <button
-                          onClick={() => handleDeleteDrafts(gen.user_id)}
-                          title="Delete generated notifications"
-                          className="bg-error/10 text-error hover:bg-error/20 p-sm rounded-lg transition-all flex items-center justify-center cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">delete</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
-
-      {/* View Notifications Modal */}
-      {viewNotifsModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-scrim/60 backdrop-blur-sm p-md">
-          <div className="bg-surface-container w-full max-w-4xl min-w-[300px] rounded-xl border border-outline-variant shadow-xl flex flex-col max-h-[85vh]">
-            <div className="p-md border-b border-outline-variant flex justify-between items-center bg-surface-container-high">
-              <h2 className="font-headline-sm text-on-surface font-bold flex items-center gap-xs">
-                <span className="material-symbols-outlined text-primary">preview</span>
-                Preview Generated Notifications
-              </h2>
-              <button onClick={() => setViewNotifsModal(null)} className="text-outline hover:text-on-surface cursor-pointer p-xs rounded hover:bg-outline-variant/20 transition-colors">
-                <span className="material-symbols-outlined">close</span>
-              </button>
-            </div>
-
-            {/* Modal Body Grid */}
-            {(() => {
-              const scoringData = getUserScoringData(viewNotifsModal.user_id);
-              return (
-                <div className="flex-1 overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-md p-md max-h-[68vh]">
-                  {/* Left Column: Notifications (width: 7/12) */}
-                  <div className="lg:col-span-7 overflow-y-auto space-y-md custom-scrollbar pr-xs">
-                    {(viewNotifsModal.notifications || []).map((notif: any, idx: number) => {
-                      let parsed: any = {};
-                      try {
-                        const content = notif.personalized_content || "{}";
-                        parsed = typeof content === 'string' && content.trim().startsWith('{') ? JSON.parse(content) : { message: content };
-                      } catch (e) {
-                        parsed = { message: notif.personalized_content || notif.description };
-                      }
-                      
-                      return (
-                        <div key={notif.id} className="bg-surface-container-low border border-outline-variant p-lg rounded-xl space-y-md shadow-sm">
-                          <div className="flex justify-between items-start gap-md border-b border-outline-variant/50 pb-sm">
-                            <h3 className="font-headline-sm text-primary font-bold">
-                              {idx + 1}. {parsed.title || notif.title}
-                            </h3>
-                            <span className="px-sm py-xs bg-primary-container text-on-primary-container text-[11px] uppercase font-bold rounded">
-                              {notif.category}
-                            </span>
-                          </div>
-                          
-                          <div className="space-y-sm">
-                            <div className="bg-surface border border-outline-variant/30 rounded p-md">
-                              <p className="text-body-md text-on-surface leading-relaxed whitespace-pre-wrap">
-                                {parsed.message || parsed.personalized_content || notif.personalized_content || notif.description}
-                              </p>
-                            </div>
-                          </div>
-
-                          {parsed.portal_link && (
-                            <div 
-                              onClick={() => window.open(parsed.portal_link.startsWith('http') ? parsed.portal_link : `https://${parsed.portal_link}`, '_blank')}
-                              className="flex items-center gap-xs text-[13px] font-bold text-primary hover:underline cursor-pointer pb-xs"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">link</span>
-                              <span>Apply here: {parsed.portal_link}</span>
-                            </div>
-                          )}
-
-                          {parsed.why_bullets && Array.isArray(parsed.why_bullets) && parsed.why_bullets.length > 0 && (
-                            <div className="bg-surface-container-high p-md rounded-lg border border-outline-variant/50 space-y-xs">
-                              <h5 className="font-label-sm text-label-sm text-outline uppercase font-bold">
-                                Why this notification?
-                              </h5>
-                              <ul className="list-disc list-inside text-body-sm text-on-surface-variant space-y-xs pl-xs">
-                                {parsed.why_bullets.map((bullet: string, bIdx: number) => (
-                                  <li key={bIdx} className="leading-relaxed">{bullet}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Right Column: User Scoring Sidebar (width: 5/12) */}
-                  <div className="lg:col-span-5 bg-surface-container-high/60 border border-outline-variant rounded-xl p-lg space-y-lg overflow-y-auto custom-scrollbar">
-                    {/* Demographic Profile */}
-                    <div>
-                      <h3 className="font-headline-sm text-headline-sm text-primary font-bold mb-md flex items-center gap-xs">
-                        <span className="material-symbols-outlined">account_circle</span>
-                        <span>Demographic Profile</span>
-                      </h3>
-                      <div className="grid grid-cols-2 gap-sm text-body-sm">
-                        <div className="space-y-xs">
-                          <p className="text-outline uppercase text-[10px] font-bold">Gender</p>
-                          <p className="text-on-surface font-semibold">{viewNotifsModal.gender || 'N/A'}</p>
-                        </div>
-                        <div className="space-y-xs">
-                          <p className="text-outline uppercase text-[10px] font-bold">Marital Status</p>
-                          <p className="text-on-surface font-semibold">{cleanCode(viewNotifsModal.marital_status, 'marital')}</p>
-                        </div>
-                        <div className="space-y-xs">
-                          <p className="text-outline uppercase text-[10px] font-bold">State / District</p>
-                          <p className="text-on-surface font-semibold">
-                            {viewNotifsModal.state || 'N/A'} / {viewNotifsModal.district || 'N/A'}
-                          </p>
-                        </div>
-                        <div className="space-y-xs">
-                          <p className="text-outline uppercase text-[10px] font-bold">Pincode</p>
-                          <p className="text-on-surface font-semibold">{viewNotifsModal.pincode || 'N/A'}</p>
-                        </div>
-                        <div className="space-y-xs">
-                          <p className="text-outline uppercase text-[10px] font-bold">Education</p>
-                          <p className="text-on-surface font-semibold">{cleanCode(viewNotifsModal.education, 'education')}</p>
-                        </div>
-                        <div className="space-y-xs">
-                          <p className="text-outline uppercase text-[10px] font-bold">Occupation</p>
-                          <p className="text-on-surface font-semibold">{viewNotifsModal.occupation || 'N/A'}</p>
-                        </div>
-                        <div className="space-y-xs col-span-2">
-                          <p className="text-outline uppercase text-[10px] font-bold">Income (Annual)</p>
-                          <p className="text-on-surface font-semibold">
-                            {viewNotifsModal.income ? `₹${viewNotifsModal.income.toLocaleString()}` : 'N/A'}
-                          </p>
-                        </div>
-                        <div className="space-y-xs">
-                          <p className="text-outline uppercase text-[10px] font-bold">Caste Category</p>
-                          <p className="text-on-surface font-semibold">{cleanCode(viewNotifsModal.caste_category, 'caste')}</p>
-                        </div>
-                        <div className="space-y-xs">
-                          <p className="text-outline uppercase text-[10px] font-bold">Disability Status</p>
-                          <p className="text-on-surface font-semibold">{viewNotifsModal.disability_status || 'None'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <hr className="border-outline-variant/30" />
-
-                    {/* Scoring metrics & engagement details */}
-                    {scoringData ? (
-                      <div className="space-y-lg">
-                        <div className="space-y-sm">
-                          <h3 className="font-label-md text-label-md text-primary font-bold uppercase tracking-wider">Scoring Run Metrics</h3>
-                          <div className="grid grid-cols-2 gap-sm text-body-sm">
-                            <div className="space-y-xs">
-                              <p className="text-outline uppercase text-[10px] font-bold">Primary Category</p>
-                              <span className="inline-block px-sm py-[2px] bg-primary/20 text-primary text-[11px] font-bold rounded">
-                                {scoringData.primary_category || 'N/A'}
-                              </span>
-                            </div>
-                            <div className="space-y-xs">
-                              <p className="text-outline uppercase text-[10px] font-bold">Notification Tag</p>
-                              <p className="text-on-surface font-semibold">{scoringData.notification_tag || 'N/A'}</p>
-                            </div>
-                            <div className="space-y-xs">
-                              <p className="text-outline uppercase text-[10px] font-bold">BPL Category</p>
-                              <p className="text-on-surface font-semibold">{scoringData.bpl_category || 'N/A'}</p>
-                            </div>
-                            <div className="space-y-xs">
-                              <p className="text-outline uppercase text-[10px] font-bold">House Ownership</p>
-                              <p className="text-on-surface font-semibold">{cleanCode(viewNotifsModal.house_ownership, 'house')}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <hr className="border-outline-variant/30" />
-
-                        <div className="space-y-sm">
-                          <h3 className="font-label-md text-label-md text-primary font-bold uppercase tracking-wider">Engagement Scores</h3>
-                          <div className="space-y-xs">
-                            <div>
-                              <div className="flex justify-between text-body-sm text-on-surface-variant mb-1">
-                                <span>Content Score</span>
-                                <span className="font-semibold text-secondary">{scoringData.content_score || 0}</span>
-                              </div>
-                              <div className="h-1.5 w-full bg-surface-container-high border border-outline-variant/50 rounded-full overflow-hidden">
-                                <div className="h-full bg-secondary" style={{ width: `${Math.min(parseFloat(scoringData.content_score) || 0, 100)}%` }}></div>
-                              </div>
-                            </div>
-                            <div>
-                              <div className="flex justify-between text-body-sm text-on-surface-variant mb-1">
-                                <span>Scheme Score</span>
-                                <span className="font-semibold text-tertiary">{scoringData.scheme_score || 0}</span>
-                              </div>
-                              <div className="h-1.5 w-full bg-surface-container-high border border-outline-variant/50 rounded-full overflow-hidden">
-                                <div className="h-full bg-tertiary" style={{ width: `${Math.min(parseFloat(scoringData.scheme_score) || 0, 100)}%` }}></div>
-                              </div>
-                            </div>
-                            <div>
-                              <div className="flex justify-between text-body-sm text-on-surface-variant mb-1">
-                                <span>Job Score</span>
-                                <span className="font-semibold text-primary">{scoringData.job_score || 0}</span>
-                              </div>
-                              <div className="h-1.5 w-full bg-surface-container-high border border-outline-variant/50 rounded-full overflow-hidden">
-                                <div className="h-full bg-primary" style={{ width: `${Math.min(parseFloat(scoringData.job_score) || 0, 100)}%` }}></div>
-                              </div>
-                            </div>
-                            <div>
-                              <div className="flex justify-between text-body-sm text-on-surface-variant mb-1">
-                                <span>Service Score</span>
-                                <span className="font-semibold text-green-500">{scoringData.service_score || 0}</span>
-                              </div>
-                              <div className="h-1.5 w-full bg-surface-container-high border border-outline-variant/50 rounded-full overflow-hidden">
-                                <div className="h-full bg-green-500" style={{ width: `${Math.min(parseFloat(scoringData.service_score) || 0, 100)}%` }}></div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        <hr className="border-outline-variant/30" />
-
-                        <div className="space-y-sm">
-                          <h3 className="font-label-md text-label-md text-primary font-bold uppercase tracking-wider">Engagement Details</h3>
-                          <div className="grid grid-cols-2 gap-sm text-body-sm">
-                            <div className="space-y-xs">
-                              <p className="text-outline uppercase text-[10px] font-bold">Engagement Time</p>
-                              <p className="text-on-surface font-semibold">{scoringData.engagement_time_min || 0} min</p>
-                            </div>
-                            <div className="space-y-xs">
-                              <p className="text-outline uppercase text-[10px] font-bold">Notification Clicks</p>
-                              <p className="text-on-surface font-semibold">{scoringData.notification_click || 0}</p>
-                            </div>
-                            <div className="space-y-xs col-span-2">
-                              <p className="text-outline uppercase text-[10px] font-bold">Preferred Language</p>
-                              <p className="text-on-surface font-semibold uppercase">{scoringData.preferred_language || 'EN'}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-sm bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-[12px] text-yellow-500 space-y-xs">
-                        <p className="font-bold flex items-center gap-xs">
-                          <span className="material-symbols-outlined text-[16px]">warning</span>
-                          No scoring metrics
-                        </p>
-                        <p>Scoring run has not been executed yet. Run HPNS matching scorer first.</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-            
-            <div className="p-md border-t border-outline-variant bg-surface-container-high flex justify-end">
-              <button 
-                onClick={() => setViewNotifsModal(null)}
-                className="px-xl py-sm bg-primary text-on-primary font-bold rounded font-label-md hover:opacity-90 transition-all cursor-pointer"
-              >
-                Done
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

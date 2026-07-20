@@ -75,8 +75,10 @@ export const Sidebar: React.FC = () => {
                     <span className="material-symbols-outlined text-[18px]">bolt</span>
                     <span>Notification Generator</span>
                   </button>
-
-
+                  <button className={getLinkClass('generated-notifications')} onClick={(e) => handleLinkClick(e, 'generated-notifications')}>
+                    <span className="material-symbols-outlined text-[18px]">save</span>
+                    <span>Generated Notification</span>
+                  </button>
                 </>
               )}
               {!isSuper && (

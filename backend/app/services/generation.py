@@ -89,56 +89,112 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
                 "source": f"Scheme: {s.get('id', 'db-scheme')}"
             })
 
-    # 2. Generate Jobs
+    # 2. Generate Jobs (SQLite DB Match -> Web Search Fallback)
     if category_limits["Job"] > 0:
         jobs = db.query(Job).filter(Job.is_deleted == False).all()
-        if not jobs:
-            jobs = [
-                Job(
-                    id="job-fallback-1",
-                    title="Data Entry Operator / Clerk",
-                    description="District Administrative Office is hiring data entry clerks for document indexing and citizen applications.",
-                    department="District Administrative Office",
-                    location="Bhandara, Maharashtra",
-                    salary="₹15,000 - ₹20,000 / month",
-                    eligibility_criteria={"state": "Maharashtra", "occupation": "Any"}
-                ),
-                Job(
-                    id="job-fallback-2",
-                    title="Assistant Agriculture Field Officer",
-                    description="Directorate of Agriculture needs field supervisors for local crop surveys and seed distribution campaigns.",
-                    department="State Agricultural Directorate",
-                    location="Nagpur, Maharashtra",
-                    salary="₹25,000 / month",
-                    eligibility_criteria={"state": "Maharashtra", "occupation": "Farmer"}
-                )
-            ]
         job_matches = []
+        
         for j in jobs:
-            score, reason = calculate_eligibility_score(user, j.eligibility_criteria, db)
-            if score >= 40:
-                job_matches.append((j, score, reason))
+            score = 0
+            reasons = []
+            
+            # Demographic matching using the new 21-column schema
+            if user.state and j.state and user.state.lower() in j.state.lower():
+                score += 30
+                reasons.append("State match")
+            if user.district and j.district and user.district.lower() in j.district.lower():
+                score += 30
+                reasons.append("District match")
+            if user.education and j.education_qualification and user.education.lower() in j.education_qualification.lower():
+                score += 20
+                reasons.append("Education match")
+            if user.occupation and j.occupation and user.occupation.lower() in j.occupation.lower():
+                score += 20
+                reasons.append("Occupation match")
+                
+            # Baseline score if profile is empty or if we want to show generic jobs
+            if score == 0 and not user.state and not user.district and not user.education:
+                score = 50
+                reasons.append("General availability")
+                
+            if score >= 30:
+                job_matches.append((j, score, ", ".join(reasons)))
+                
         job_matches.sort(key=lambda x: x[1], reverse=True)
         
-        for j, score, reason in job_matches[:category_limits["Job"]]:
-            raw_text = f"Job Title: {j.title}\nDepartment: {j.department}\nLocation: {j.location}\nSalary: {j.salary}\nMatch Reason: {reason}"
-            priority = "medium" if score >= 70 else "low"
-            bucket = classify_notification_bucket(j.title, j.description)
+        selected_jobs_data = []
+        
+        if job_matches:
+            # Use local SQLite jobs
+            for j, score, reason in job_matches[:category_limits["Job"]]:
+                role = j.job_role_position or "Unknown Role"
+                company = j.name_of_company_person or "Unknown Company"
+                qualifications = (j.education_qualification or "Any").replace('[', '').replace(']', '').replace('"', '')
+                
+                raw_text = (
+                    f"Job Title / Role: {role}\n"
+                    f"Company: {company}\n"
+                    f"Category: {j.job_category or 'N/A'}\n"
+                    f"Location: {j.city or j.district or j.state or 'Any'}\n"
+                    f"Salary: {j.salary_range or 'Not Disclosed'}\n"
+                    f"Eligibility Requirements: {qualifications}, Experience: {j.exp_required or 'N/A'}\n"
+                    f"Apply Link / Contact: {j.job_url or j.job_contact_email or j.job_contact_number or 'Visit official portal'}\n"
+                    f"Match Reason: {reason}"
+                )
+                selected_jobs_data.append({
+                    "title": role,
+                    "description": f"Vacancy at {company} in {j.job_category or 'N/A'}.",
+                    "raw_text": raw_text,
+                    "score": float(score),
+                    "reason": reason,
+                    "source": f"Job: {j.sl_no}"
+                })
+        else:
+            # Web Search Fallback
+            try:
+                from googlesearch import search
+                search_query = f"'{user.occupation or 'Jobs'}' vacancy in '{user.district or user.state or 'India'}' apply online"
+                # Using basic search for URLs
+                search_results = list(search(search_query, num=category_limits["Job"], stop=category_limits["Job"], pause=2.0))
+                
+                for i, result_url in enumerate(search_results):
+                    raw_text = (
+                        f"Job Title / Role: Job vacancy suitable for {user.occupation or 'your profile'}\n"
+                        f"Location: {user.district or user.state or 'Your area'}\n"
+                        f"Apply Link: {result_url}\n"
+                        f"Match Reason: Web search fallback matched your professional profile."
+                    )
+                    selected_jobs_data.append({
+                        "title": f"New Job Opening ({user.occupation or 'General'})",
+                        "description": f"An external job opportunity was found matching your profile.",
+                        "raw_text": raw_text,
+                        "score": 75.0,
+                        "reason": "Web Search Match",
+                        "source": f"Web Search: {result_url[:30]}..."
+                    })
+            except Exception as e:
+                print(f"Web search fallback failed: {e}")
+                pass
+                
+        # Append selected jobs to AI tasks queue
+        for data in selected_jobs_data:
+            priority = "medium" if data["score"] >= 70 else "low"
+            bucket = classify_notification_bucket(data["title"], data["description"])
             
             ai_tasks.append({
-                "title": j.title,
-                "prefix_title": f"Job: {j.title}",
-                "description": j.description[:200] + "...",
-                "raw_text": raw_text,
+                "title": data["title"],
+                "prefix_title": f"Job: {data['title']}",
+                "description": data["description"],
+                "raw_text": data["raw_text"],
                 "category": "Employment",
-                "score": score,
-                "reason": reason,
+                "score": data["score"],
+                "reason": data["reason"],
                 "priority": priority,
                 "bucket": bucket,
-                "source": f"Job: {j.id}"
+                "source": data["source"]
             })
 
-    # 3. Generate Services
+    # 3. Generate Services (With Web Search Fallback for Links)
     if category_limits["Service"] > 0:
         services = db.query(Service).filter(Service.is_deleted == False).all()
         if not services:
@@ -166,7 +222,21 @@ def generate_user_notifications(user_id: str, db: Session, creator_id: str = Non
         service_matches.sort(key=lambda x: x[1], reverse=True)
         
         for sv, score, reason in service_matches[:category_limits["Service"]]:
-            raw_text = f"Service: {sv.title}\nDepartment: {sv.department}\nDescription: {sv.description}\nEligibility: {reason}"
+            # The Service schema lacks a URL, so we dynamically search for one
+            service_url = ""
+            try:
+                from googlesearch import search
+                search_query = f"official portal {sv.title} apply online {sv.department}"
+                # Get the top 1 result
+                search_results = list(search(search_query, num=1, stop=1, pause=1.0))
+                if search_results:
+                    service_url = search_results[0]
+            except Exception as e:
+                print(f"Service link search failed: {e}")
+                pass
+                
+            link_text = f"\nApply Link / Contact: {service_url}" if service_url else ""
+            raw_text = f"Service: {sv.title}\nDepartment: {sv.department}\nDescription: {sv.description}\nEligibility: {reason}{link_text}"
             bucket = classify_notification_bucket(sv.title, sv.description)
             
             ai_tasks.append({

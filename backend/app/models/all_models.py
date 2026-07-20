@@ -57,14 +57,30 @@ class Scheme(Base, SoftDeleteMixin, AuditMixin):
 
 class Job(Base, SoftDeleteMixin, AuditMixin):
     __tablename__ = "jobs"
+    __table_args__ = {"extend_existing": True}
     
     id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
-    title = Column(String(255), nullable=False)
-    description = Column(Text, nullable=False)
-    department = Column(String(255), nullable=False)
-    salary = Column(String(100), nullable=True)
-    location = Column(String(255), nullable=True)
-    eligibility_criteria = Column(JSON, nullable=False)
+    sl_no = Column(String(255), unique=True, index=True, nullable=False)
+    job_type = Column(String(255), nullable=True)
+    job_category = Column(String(255), nullable=True)
+    job_subcategory = Column(String(255), nullable=True)
+    education_qualification = Column(String(1000), nullable=True)
+    occupation = Column(String(1000), nullable=True)
+    job_role_position = Column(String(255), nullable=True)
+    name_of_company_person = Column(String(255), nullable=True)
+    salary_range = Column(String(255), nullable=True)
+    state = Column(String(255), nullable=True)
+    city = Column(String(255), nullable=True)
+    district = Column(String(255), nullable=True)
+    exp_required = Column(String(255), nullable=True)
+    job_contact_number = Column(String(255), nullable=True)
+    job_contact_email = Column(String(255), nullable=True)
+    job_url = Column(String(1000), nullable=True)
+    mode_of_contact = Column(String(255), nullable=True)
+    expiry_date = Column(String(255), nullable=True)
+    user_id_ref = Column(String(255), nullable=True)
+    status = Column(String(255), nullable=True)
+    reason_for_rejection = Column(Text, nullable=True)
 
 class Service(Base, SoftDeleteMixin, AuditMixin):
     __tablename__ = "services"

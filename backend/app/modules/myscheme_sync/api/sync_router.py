@@ -171,45 +171,34 @@ def get_sync_logs(limit: int = Query(20, ge=1, le=100), db: Session = Depends(ge
     """
     return scheme_repository.get_recent_sync_logs(db, limit=limit)
 
-import threading
-
-def _run_sync_worker(category_slug: Optional[str] = None, force: bool = False, incremental: bool = False):
-    asyncio.run(sync_service.run_sync(category_slug=category_slug, force=force, incremental=incremental))
-
-def dispatch_sync_worker(category_slug: Optional[str] = None, force: bool = False, incremental: bool = False):
-    t = threading.Thread(
-        target=_run_sync_worker,
-        kwargs={"category_slug": category_slug, "force": force, "incremental": incremental},
-        daemon=True
-    )
-    t.start()
+# Removed threading; using FastAPI BackgroundTasks to ensure tasks run in the correct asyncio loop
 
 @router.post("/admin/sync/full")
-async def trigger_full_sync(payload: Optional[SyncTriggerRequest] = None):
+async def trigger_full_sync(background_tasks: BackgroundTasks, payload: Optional[SyncTriggerRequest] = None):
     """
     Triggers full category and scheme crawl synchronization job.
     """
     force = payload.force if payload else True
-    dispatch_sync_worker(force=force)
+    background_tasks.add_task(sync_service.run_sync, category_slug=None, force=force, incremental=False)
     return {"status": "success", "message": "Full synchronization job dispatched in background."}
 
 @router.post("/admin/sync/category")
-async def trigger_category_sync(payload: SyncTriggerRequest):
+async def trigger_category_sync(background_tasks: BackgroundTasks, payload: SyncTriggerRequest):
     """
     Triggers synchronization for a specific category slug.
     """
     if not payload.category_slug:
         raise HTTPException(status_code=400, detail="category_slug is required for category sync.")
-    dispatch_sync_worker(category_slug=payload.category_slug, force=payload.force)
+    background_tasks.add_task(sync_service.run_sync, category_slug=payload.category_slug, force=payload.force, incremental=False)
     return {"status": "success", "message": f"Category sync for '{payload.category_slug}' dispatched in background."}
 
 @router.post("/admin/sync/incremental")
-async def trigger_incremental_sync(payload: Optional[SyncTriggerRequest] = None):
+async def trigger_incremental_sync(background_tasks: BackgroundTasks, payload: Optional[SyncTriggerRequest] = None):
     """
     Triggers incremental synchronization (only updates modified / outdated schemes).
     """
     force = payload.force if payload else True
-    dispatch_sync_worker(incremental=True, force=force)
+    background_tasks.add_task(sync_service.run_sync, category_slug=None, force=force, incremental=True)
     return {"status": "success", "message": "Incremental synchronization job dispatched in background."}
 
 @router.post("/admin/sync/pause")

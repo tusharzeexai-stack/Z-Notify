@@ -1327,7 +1327,21 @@ function CohortWiseGenerator({
               <span className="material-symbols-outlined text-primary text-[20px]">inventory_2</span>
               {cohortGenResults.length} Cohort Template{cohortGenResults.length!==1?'s':''} Generated
             </h3>
-            <button onClick={() => { const blob=new Blob([JSON.stringify(cohortGenResults,null,2)],{type:'application/json'}); const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download='cohort_notifications_54.json'; a.click(); }}
+            <button onClick={() => { 
+              const blob=new Blob([JSON.stringify(cohortGenResults,null,2)],{type:'application/json'}); 
+              const u=URL.createObjectURL(blob); 
+              const a=document.createElement('a'); 
+              a.href=u; a.download='cohort_notifications_54.json'; 
+              a.click();
+              
+              // Also save to localStorage for the Generated Notifications tab
+              const existing = JSON.parse(localStorage.getItem('hpns_saved_cohort_gens') || '[]');
+              const newSaves = [...cohortGenResults, ...existing];
+              // deduplicate by cohort_id and title to allow all 7 notifications per cohort to be saved
+              const uniqueSaves = Array.from(new Map(newSaves.map(item => [item.cohort_id + '-' + item.notification_title_with_name, item])).values());
+              localStorage.setItem('hpns_saved_cohort_gens', JSON.stringify(uniqueSaves));
+              alert('Cohort generations saved successfully!');
+            }}
               className="bg-secondary text-on-secondary px-xl py-md font-label-md rounded-lg hover:opacity-90 active:scale-95 transition-all flex items-center gap-xs cursor-pointer font-bold shadow-md hover:shadow-lg">
               <span className="material-symbols-outlined">save</span>
               Save Cohort Generations

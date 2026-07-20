@@ -34,9 +34,15 @@ class PlaywrightCrawler:
                 )
 
     async def get_page(self) -> Page:
-        if not self._context:
+        try:
+            if not self._context or not self._browser or not self._browser.is_connected():
+                await self.initialize()
+            return await self._context.new_page()
+        except Exception as e:
+            sync_logger.warning(f"Browser crash detected ({e}), attempting auto-recovery...")
+            await self.close()
             await self.initialize()
-        return await self._context.new_page()
+            return await self._context.new_page()
 
     async def fetch_category_scheme_links(self, category_url: str, max_items: int = 2000) -> List[Dict[str, Any]]:
         """

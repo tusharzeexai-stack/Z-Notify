@@ -115,21 +115,51 @@ class SchemeResponse(BaseModel):
         from_attributes = True
 
 class JobCreate(BaseModel):
-    title: str
-    description: str
-    department: str
-    salary: Optional[str] = None
-    location: Optional[str] = None
-    eligibility_criteria: Dict[str, Any]
+    sl_no: str
+    job_type: Optional[str] = None
+    job_category: Optional[str] = None
+    job_subcategory: Optional[str] = None
+    education_qualification: Optional[str] = None
+    occupation: Optional[str] = None
+    job_role_position: Optional[str] = None
+    name_of_company_person: Optional[str] = None
+    salary_range: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    exp_required: Optional[str] = None
+    job_contact_number: Optional[str] = None
+    job_contact_email: Optional[str] = None
+    job_url: Optional[str] = None
+    mode_of_contact: Optional[str] = None
+    expiry_date: Optional[str] = None
+    user_id_ref: Optional[str] = None
+    status: Optional[str] = None
+    reason_for_rejection: Optional[str] = None
 
 class JobResponse(BaseModel):
     id: str
-    title: str
-    description: str
-    department: str
-    salary: Optional[str] = None
-    location: Optional[str] = None
-    eligibility_criteria: Dict[str, Any]
+    sl_no: str
+    job_type: Optional[str] = None
+    job_category: Optional[str] = None
+    job_subcategory: Optional[str] = None
+    education_qualification: Optional[str] = None
+    occupation: Optional[str] = None
+    job_role_position: Optional[str] = None
+    name_of_company_person: Optional[str] = None
+    salary_range: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+    district: Optional[str] = None
+    exp_required: Optional[str] = None
+    job_contact_number: Optional[str] = None
+    job_contact_email: Optional[str] = None
+    job_url: Optional[str] = None
+    mode_of_contact: Optional[str] = None
+    expiry_date: Optional[str] = None
+    user_id_ref: Optional[str] = None
+    status: Optional[str] = None
+    reason_for_rejection: Optional[str] = None
 
     class Config:
         from_attributes = True

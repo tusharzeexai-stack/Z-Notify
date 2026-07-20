@@ -32,6 +32,7 @@ import { Jobs } from './pages/Jobs';
 import { Services } from './pages/Services';
 import { MedicalFacilities } from './pages/MedicalFacilities';
 import { Cohorts } from './pages/Cohorts';
+import { GeneratedNotifications } from './pages/GeneratedNotifications';
 
 const AppContent: React.FC = () => {
   const { currentUser, activeView, changeView, notifications } = useDashboard();
@@ -139,6 +140,8 @@ const AppContent: React.FC = () => {
         return <AuditLogs />;
       case 'cohorts':
         return <Cohorts />;
+      case 'generated-notifications':
+        return <GeneratedNotifications />;
       default:
         return <Dashboard />;
     }

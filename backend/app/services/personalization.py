@@ -1089,11 +1089,14 @@ When given a list of multiple user data blocks, return a JSON array of one outpu
     portal_link = ""
     if raw_content:
         for line in raw_content.split("\n"):
-            if any(line.startswith(k) for k in ["Official Portal:", "Agency:", "Source:", "Portal:"]):
-                val = line.split(":", 1)[1].strip()
-                if val.startswith("http") or "." in val:
-                    portal_link = val
-                    break
+            if any(line.startswith(k) for k in ["Official Portal:", "Agency:", "Source:", "Portal:", "Apply Link / Contact:", "Apply Link:"]):
+                try:
+                    val = line.split(":", 1)[1].strip()
+                    if val.lower() not in ["nan", "none", "", "n/a", "null", "visit official portal"]:
+                        portal_link = val
+                        break
+                except IndexError:
+                    pass
 
     prompt = system_prompt + "\n\nInput user data block:\n" + json.dumps(user_data_block, indent=2)
 
