@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useDashboard } from '../context/DashboardContext';
-import { saveScoringRun } from '../utils/scoringStorage';
 import { loadDistrictMap, resolveField } from '../utils/mappings';
+import { getActionLinks } from '../utils/actionLinks';
 
 export const NotificationGenerator: React.FC = () => {
-  const { token, users, generateNotifications, fetchNotifications, saveDrafts, changeView } = useDashboard();
+  const { token, users, generateNotifications, fetchNotifications, saveDrafts, changeView, jobs, schemes, services, medicalFacilities, fetchInventories } = useDashboard();
   
   // Tab control
   const [activeTab, setActiveTab] = useState<'generate' | 'dashboard' | 'scoring' | 'cohort'>('generate');
@@ -19,6 +19,7 @@ export const NotificationGenerator: React.FC = () => {
   
   useEffect(() => {
     loadDistrictMap();
+    fetchInventories();
   }, []);
   
   // Gemini API Key from LocalStorage or Server env
@@ -608,6 +609,7 @@ export const NotificationGenerator: React.FC = () => {
               {Object.keys(groupedNotifications).map((uid) => {
                 const citizenNotifs = groupedNotifications[uid];
                 const citizenName = getUserName(uid);
+                const scoringData = users.find(u => u.id === uid || u.uid === uid) || {};
                 
                 return (
                   <div key={uid} className="space-y-md border-l-4 border-primary pl-md">
@@ -675,21 +677,69 @@ export const NotificationGenerator: React.FC = () => {
                                 </p>
                               </div>
 
-                              {/* Matching Scheme Link */}
-                              {parsed.portal_link ? (
-                                <div 
-                                  onClick={() => window.open(parsed.portal_link.startsWith('http') ? parsed.portal_link : `https://${parsed.portal_link}`, '_blank')}
-                                  className="flex items-center gap-xs text-[13px] font-bold text-primary hover:underline cursor-pointer"
-                                >
-                                  <span className="material-symbols-outlined text-[16px]">link</span>
-                                  <span>Apply here: {parsed.portal_link}</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-xs text-[13px] font-bold text-outline">
-                                  <span className="material-symbols-outlined text-[16px]">link_off</span>
-                                  <span>No direct application link</span>
-                                </div>
-                              )}
+                              {/* Universal Action Links */}
+                              {(() => {
+                                const al = getActionLinks(notif, parsed, scoringData, { jobs, schemes, services, medicalFacilities });
+                                const openUrl = (url: string | null | undefined) => {
+                                  if (!url) return;
+                                  window.open(url.startsWith('http') || url.startsWith('mailto') || url.startsWith('tel') ? url : `https://${url}`, '_blank');
+                                };
+                                return (
+                                  <div className="space-y-sm">
+                                    {al.items.length > 0 && (
+                                      <>
+                                        <h5 className="text-[11px] font-bold text-outline uppercase tracking-wider flex items-center gap-xs">
+                                          <span className="material-symbols-outlined text-[14px] text-primary">{al.icon}</span>
+                                          {al.label} ({al.items.length})
+                                        </h5>
+                                        {al.items.map((it: any, ii: number) => (
+                                          <div key={ii} className="bg-surface border border-outline-variant rounded-lg p-md space-y-xs hover:border-primary/50 transition-colors">
+                                            <div className="flex justify-between items-start gap-xs">
+                                              <div>
+                                                <p className="font-bold text-on-surface text-[13px]">{it.title}</p>
+                                                {it.sub && <p className="text-outline text-[11px] font-semibold">{it.sub}</p>}
+                                              </div>
+                                              <span className="text-[9px] font-bold px-xs py-[1px] bg-primary/10 text-primary border border-primary/20 rounded uppercase whitespace-nowrap">{it.badge}</span>
+                                            </div>
+                                            {it.meta?.length > 0 && (
+                                              <div className="flex flex-wrap gap-xs text-[11px] text-outline">
+                                                {it.meta.map((m: string, mi: number) => <span key={mi}>{m}</span>)}
+                                              </div>
+                                            )}
+                                            <button onClick={() => openUrl(it.url || al.fallbacks[0]?.url)}
+                                              className="w-full mt-xs bg-primary text-on-primary text-[12px] font-bold py-xs rounded-md hover:opacity-90 transition-all cursor-pointer flex items-center justify-center gap-xs">
+                                              <span className="material-symbols-outlined text-[15px]">open_in_new</span>
+                                              {it.btnLabel}
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </>
+                                    )}
+                                    {al.items.length === 0 && (
+                                      <p className="text-amber-400 text-[12px] font-bold flex items-center gap-xs">
+                                        <span className="material-symbols-outlined text-[16px]">info</span>
+                                        Not found in database — use links below:
+                                      </p>
+                                    )}
+                                    <div className="flex flex-col gap-sm">
+                                      {al.fallbacks.map((fb: any, fi: number) => (
+                                        <button key={fi} onClick={() => openUrl(fb.url)}
+                                          className={`w-full text-[12px] font-bold py-sm rounded-lg flex items-center justify-center gap-xs hover:opacity-90 transition-all cursor-pointer ${fb.color}`}>
+                                          <span className="material-symbols-outlined text-[15px]">{al.icon}</span>
+                                          {fb.label}
+                                        </button>
+                                      ))}
+                                    </div>
+                                    {al.items.length > 0 && (
+                                      <button onClick={() => openUrl(al.moreUrl)}
+                                        className="w-full bg-surface border border-outline-variant text-outline text-[11px] font-bold py-xs rounded-lg flex items-center justify-center gap-xs hover:border-primary/40 hover:text-primary transition-all cursor-pointer">
+                                        <span className="material-symbols-outlined text-[14px]">search</span>
+                                        {al.moreLabel}
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })()}
 
                               {/* Badges bar */}
                               <div className="flex flex-wrap gap-xs pt-xs border-t border-outline-variant/30">
