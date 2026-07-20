@@ -69,7 +69,7 @@ export const getActionLinks = (
 
   // ── HEALTHCARE ───────────────────────────────────────────────────────────
   if (cat.includes('HEALTH') || cat.includes('MEDIC') || title.includes('health') || title.includes('hospital') || msg.includes('hospital')) {
-    const matched = matchItems(medicalFacilities, ['facility_name','facility_type','specialization'], ['hospital','clinic','health','medical','primary'], dist, state, 3);
+    const matched = matchItems(medicalFacilities, ['facility_name','facility_type','specialization'], ['hospital','clinic','health','medical','primary'], dist, state, 1);
     return {
       type: 'health', label: 'Nearby Health Facilities', icon: 'local_hospital',
       items: matched.map(f => ({
@@ -91,7 +91,7 @@ export const getActionLinks = (
   // ── SCHEMES ──────────────────────────────────────────────────────────────
   if (cat.includes('SCHEME') || cat.includes('BENEFIT') || cat.includes('WELFARE') || title.includes('scheme') || msg.includes('scheme') || msg.includes('yojana')) {
     const schemeKws = [...kws, 'scheme', 'yojana', 'benefit'];
-    const matched = matchItems(schemes, ['scheme_name','scheme_category','description'], schemeKws, dist, state, 3);
+    const matched = matchItems(schemes, ['scheme_name','scheme_category','description'], schemeKws, dist, state, 1);
     return {
       type: 'scheme', label: 'Matching Schemes', icon: 'policy',
       items: matched.map(s => ({
@@ -112,9 +112,18 @@ export const getActionLinks = (
 
   // ── AGRICULTURE ──────────────────────────────────────────────────────────
   if (cat.includes('AGRI') || cat.includes('FARM') || cat.includes('KISAN') || title.includes('farm') || msg.includes('farm') || msg.includes('kisan')) {
+    const agriKws = [...kws, 'kisan', 'farmer', 'agriculture', 'krishi', 'crop', 'maan-dhan'];
+    const matched = matchItems(schemes, ['scheme_name','scheme_category','description'], agriKws, dist, state, 1);
     return {
-      type: 'agri', label: 'Agriculture Resources', icon: 'agriculture',
-      items: [],
+      type: 'agri', label: 'Agriculture Schemes', icon: 'agriculture',
+      items: matched.map(s => ({
+        title: s.scheme_name || 'Agriculture Scheme',
+        sub: s.scheme_category || '',
+        badge: s.scheme_type || 'SCHEME',
+        meta: [s.deadline ? `Deadline: ${s.deadline}` : '', s.benefit_amount ? `Benefit: ${s.benefit_amount}` : ''].filter(Boolean),
+        url: s.application_url || s.portal_link,
+        btnLabel: 'Apply for Scheme'
+      })),
       fallbacks: [
         { label: `PM-KISAN scheme for farmers in ${loc}`, url: 'https://pmkisan.gov.in/', color: 'bg-green-600 text-white' },
         { label: `Agri schemes for ${occ} — MyScheme`, url: `https://www.myscheme.gov.in/search?q=${encodeURIComponent('farmer '+occ)}`, color: 'bg-primary/10 border border-primary/30 text-primary' },
@@ -126,7 +135,7 @@ export const getActionLinks = (
 
   // ── SERVICE ──────────────────────────────────────────────────────────────
   if (cat.includes('SERVICE') || cat.includes('CIVIC') || title.includes('service') || msg.includes('service')) {
-    const matched = matchItems(services, ['service_name','service_category','description'], kws, dist, state, 3);
+    const matched = matchItems(services, ['service_name','service_category','description'], kws, dist, state, 1);
     return {
       type: 'service', label: 'Nearby Services', icon: 'miscellaneous_services',
       items: matched.map(sv => ({
